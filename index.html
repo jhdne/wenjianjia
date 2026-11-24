@@ -7,9 +7,6 @@
   <meta name="theme-color" content="#0f172a" />
   <meta name="description" content="零安装 PWA + Bookmarklet 智能网页收藏与语义知识图谱工作台" />
   <link id="pwa-manifest" rel="manifest" href="" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <script>
@@ -18,8 +15,8 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'Noto Sans SC', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace']
+            sans: ['Inter', 'Noto Sans SC', '-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
           }
         }
       }
@@ -35,7 +32,7 @@
       --grid-dot: rgba(71, 85, 105, 0.32);
     }
     body {
-      font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
       overscroll-behavior: none;
     }
     .graph-bg {
@@ -69,7 +66,7 @@
 <body class="bg-white text-slate-900 dark:bg-[#0b0f17] dark:text-slate-100 h-screen w-screen overflow-hidden flex flex-col antialiased selection:bg-indigo-500/15 selection:text-indigo-600 dark:selection:text-indigo-300">
 
   <!-- Minimalist Top Navigation Bar -->
-  <header class="h-12 shrink-0 border-b border-slate-200/70 dark:border-slate-800/80 bg-white/95 dark:bg-[#0f141f]/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 z-30">
+  <header class="h-12 shrink-0 border-b border-slate-200/70 dark:border-slate-800/80 bg-white/95 dark:bg-[#0f141f]/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 z-30">
     <div class="flex items-center gap-2.5 min-w-0">
       <button id="btn-toggle-sidebar" class="lg:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors" title="切换侧边栏">
         <i data-lucide="panel-left" class="w-4 h-4"></i>
@@ -104,6 +101,10 @@
       <button id="btn-rerun-local" class="hidden inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800/60 text-amber-700 dark:text-amber-300 text-[11px] font-medium hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors" title="使用已配置的大模型重新精排本地归档条目">
         <i data-lucide="refresh-cw" class="w-3 h-3"></i>
         <span id="rerun-local-label">待精排 0</span>
+      </button>
+      <button id="btn-open-import" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-medium transition-colors" title="导入 HTML / JSON / CSV / Markdown 书签">
+        <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+        <span class="hidden sm:inline">导入</span>
       </button>
       <button id="btn-simulate-clip" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white text-[11px] font-medium transition-colors">
         <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -188,13 +189,13 @@
 
         <!-- Bottom-Left Legend -->
         <div class="absolute bottom-3 left-3 hidden sm:flex items-center gap-3 px-2.5 py-1 rounded-lg bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 pointer-events-none">
-          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full border-2 border-indigo-500"></span> 文件夹</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full border-2 border-indigo-500"></span> 文件夹（外环示跨区关联度）</span>
           <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full border-2 border-slate-400"></span> 网页</span>
           <span class="inline-flex items-center gap-1.5"><span class="w-3.5 border-t-2 border-dashed border-amber-500"></span> 语义连线</span>
         </div>
       </section>
 
-      <!-- View 2: Classic Folder Grid / Finder View -->
+      <!-- View 2: Classic Folder Grid / Finder View with Visual Fingerprint Charts -->
       <section id="view-folder" class="hidden w-full h-full overflow-y-auto bg-[#fafafa] dark:bg-[#0b0f17] p-4 sm:p-6">
         <div id="folder-view-content" class="max-w-5xl mx-auto space-y-5">
           <!-- Rendered dynamically -->
@@ -224,6 +225,51 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Modal: Multi-format Import (HTML / JSON / CSV / Markdown) -->
+  <div id="modal-import" class="hidden fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#0f141f] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-white">多格式书签导入与自动解析</h2>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">支持 Chrome/Edge/Firefox 导出的 HTML、JSON、CSV 及 Markdown</p>
+        </div>
+        <button data-close-modal="modal-import" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50/60 dark:has-[:checked]:bg-indigo-950/30">
+            <input type="radio" name="import-mode" value="keep" checked class="accent-indigo-600" />
+            <div>
+              <div class="font-medium text-slate-800 dark:text-slate-100">保留原文件夹</div>
+              <div class="text-[10px] text-slate-400">沿用目录并补全标签与连线</div>
+            </div>
+          </label>
+          <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50/60 dark:has-[:checked]:bg-indigo-950/30">
+            <input type="radio" name="import-mode" value="reclassify" class="accent-indigo-600" />
+            <div>
+              <div class="font-medium text-slate-800 dark:text-slate-100">智能自动重分类</div>
+              <div class="text-[10px] text-slate-400">按语义打散重聚为新文件夹</div>
+            </div>
+          </label>
+        </div>
+
+        <label id="import-dropzone" class="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/70 dark:bg-slate-900/50 cursor-pointer transition-colors text-center">
+          <i data-lucide="file-up" class="w-7 h-7 text-indigo-500 mb-2"></i>
+          <div class="font-medium text-slate-800 dark:text-slate-100">点击选择或拖拽书签文件到此处</div>
+          <div class="text-[11px] text-slate-400 mt-1">支持 .html / .htm（浏览器书签导出）、.json、.csv、.md</div>
+          <input id="input-import-file" type="file" accept=".html,.htm,.json,.csv,.md,.txt,text/html,application/json,text/csv,text/markdown" class="hidden" />
+        </label>
+
+        <div class="flex items-center justify-between pt-1">
+          <button type="button" id="btn-demo-html-import" class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-medium">测试：模拟导入 Chrome 书签 HTML</button>
+          <span class="text-[11px] text-slate-400">自动按 URL 去重</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Modal: Clip / Simulate Webpage -->
@@ -273,8 +319,8 @@
     <div class="bg-white dark:bg-[#0f141f] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden">
       <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <div>
-          <h2 class="text-sm font-semibold text-slate-900 dark:text-white">书签脚本（Bookmarklet）</h2>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">零安装绕过登录墙，通过 postMessage / URL Hash 传回正文</p>
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-white">书签脚本（Bookmarklet）· 极速采集版</h2>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">零克隆 DOM 极速提取，点击即反馈并瞬时传回 NexusClip</p>
         </div>
         <button data-close-modal="modal-bookmarklet" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
           <i data-lucide="x" class="w-4 h-4"></i>
@@ -358,10 +404,9 @@
             <button id="btn-export-json" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium">
               <i data-lucide="download" class="w-3.5 h-3.5"></i> 导出 JSON
             </button>
-            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium cursor-pointer">
-              <i data-lucide="upload" class="w-3.5 h-3.5"></i> 导入 JSON
-              <input id="input-import-json" type="file" accept=".json,application/json" class="hidden" />
-            </label>
+            <button id="btn-export-html" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium">
+              <i data-lucide="file-code" class="w-3.5 h-3.5"></i> 导出书签 HTML
+            </button>
             <button id="btn-reset-demo" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-medium">
               <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 重置演示数据
             </button>
@@ -400,7 +445,7 @@
 
           if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
             const swCode = `
-              const CACHE = 'nexusclip-v2';
+              const CACHE = 'nexusclip-v3';
               self.addEventListener('install', () => self.skipWaiting());
               self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
               self.addEventListener('fetch', e => {
@@ -627,6 +672,31 @@
         }
       }
 
+      async function dbPutBatch(items) {
+        if (!items.length) return;
+        if (useMemoryFallback) {
+          items.forEach((item) => {
+            const idx = memoryFallbackBookmarks.findIndex((b) => b.id === item.id);
+            if (idx >= 0) memoryFallbackBookmarks[idx] = item;
+            else memoryFallbackBookmarks.push(item);
+          });
+          return;
+        }
+        try {
+          const db = await openDB();
+          await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            items.forEach((item) => store.put(item));
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+          });
+        } catch (_) {
+          useMemoryFallback = true;
+          items.forEach((item) => memoryFallbackBookmarks.push(item));
+        }
+      }
+
       async function dbDelete(id) {
         if (useMemoryFallback) {
           memoryFallbackBookmarks = memoryFallbackBookmarks.filter((b) => b.id !== id);
@@ -684,9 +754,7 @@
       }
 
       function saveSettings(settings) {
-        try {
-          localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-        } catch (_) {}
+        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (_) {}
       }
 
       // =========================================================================
@@ -695,9 +763,9 @@
       const state = {
         bookmarks: [],
         settings: loadSettings(),
-        viewMode: 'graph', // 'graph' | 'folder'
+        viewMode: 'graph',
         searchQuery: '',
-        selectedFolder: null,     // null = All
+        selectedFolder: null,
         selectedBookmarkId: null,
         expandedSidebarFolders: new Set(),
         expandedGraphFolders: new Set(['AI 架构与 Agent', '前端工程与设计']),
@@ -743,11 +811,8 @@
       }
 
       function getHostname(url) {
-        try {
-          return new URL(url).hostname.replace(/^www\./, '');
-        } catch (_) {
-          return url;
-        }
+        try { return new URL(url).hostname.replace(/^www\./, ''); }
+        catch (_) { return url; }
       }
 
       function getAllFolderNames() {
@@ -755,24 +820,25 @@
       }
 
       // =========================================================================
-      // 6. Bookmarklet Generator & Incoming Clip Receiver
+      // 6. Fast Bookmarklet Generator & Incoming Clip Receiver
       // =========================================================================
       function buildBookmarkletCode(targetUrl) {
         const cleanTarget = (targetUrl || '').split('#')[0] || 'https://your-nexusclip-app.example.com';
+        // Optimized: no cloneNode(true), direct main/article innerText slice + instant toast feedback
         const fnBody = `
           (function(){
             var d=document,l=location.href,t=d.title||l;
-            var root=d.querySelector('article,main,[role="main"]')||d.body;
-            var clone=root.cloneNode(true);
-            var rm=clone.querySelectorAll('script,style,noscript,nav,header,footer,aside,iframe,svg');
-            for(var i=0;i<rm.length;i++){rm[i].remove();}
-            var txt=(clone.innerText||clone.textContent||'').replace(/\\s+/g,' ').trim().slice(0,3600);
+            var el=d.querySelector('article,main,[role="main"]')||d.body;
+            var txt=(el&&el.innerText?el.innerText:'').replace(/\\s+/g,' ').trim().slice(0,2200);
             var payload={type:'NEXUS_CLIP',title:t,url:l,content:txt,clippedAt:Date.now()};
-            var json=JSON.stringify(payload);
-            var b64=btoa(unescape(encodeURIComponent(json)));
-            var dest=${JSON.stringify(cleanTarget)}+'#clip='+encodeURIComponent(b64);
-            var w=window.open(dest,'NexusClipWindow');
-            if(w){setTimeout(function(){try{w.postMessage(payload,'*');}catch(e){}},600);}
+            var tip=d.createElement('div');
+            tip.textContent='⚡ 已发送到 NexusClip';
+            tip.style.cssText='position:fixed;top:16px;right:16px;z-index:2147483647;background:#0f172a;color:#fff;padding:8px 14px;border-radius:10px;font:500 12px/1.4 sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.22)';
+            d.body.appendChild(tip);
+            setTimeout(function(){tip.remove();},1800);
+            var b64=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+            var w=window.open(${JSON.stringify(cleanTarget)}+'#clip='+encodeURIComponent(b64),'NexusClipWindow');
+            if(w){try{w.postMessage(payload,'*');}catch(e){}}
           })();
         `.replace(/\s+/g, ' ').trim();
         return 'javascript:' + fnBody;
@@ -850,11 +916,10 @@
         return m;
       }
 
-      function localFallbackAnalyze(title, url, content, excludeId = null) {
+      function localFallbackAnalyze(title, url, content, excludeId = null, preferredFolder = null) {
         const rawText = `${title} ${url} ${content}`;
         const inputFreq = toFreqMap(tokenize(rawText));
 
-        // 1) Similarity against existing folders in IndexedDB
         const folderFreqs = new Map();
         state.bookmarks.forEach((b) => {
           if (b.id === excludeId) return;
@@ -864,17 +929,18 @@
           bTokens.forEach((t) => fm.set(t, (fm.get(t) || 0) + 1));
         });
 
-        let bestFolder = '综合知识库';
+        let bestFolder = preferredFolder || '综合知识库';
         let bestSim = 0;
-        folderFreqs.forEach((fm, fName) => {
-          const sim = cosineSim(inputFreq, fm);
-          if (sim > bestSim) {
-            bestSim = sim;
-            bestFolder = fName;
-          }
-        });
+        if (!preferredFolder) {
+          folderFreqs.forEach((fm, fName) => {
+            const sim = cosineSim(inputFreq, fm);
+            if (sim > bestSim) {
+              bestSim = sim;
+              bestFolder = fName;
+            }
+          });
+        }
 
-        // 2) Keyword rule boost if similarity is low
         const lower = rawText.toLowerCase();
         const rules = [
           { folder: 'AI 架构与 Agent', keys: ['agent', 'llm', 'rag', 'gpt', 'claude', 'gemini', 'prompt', '大模型', '智能体', '向量', 'webgpu', '推理'] },
@@ -899,22 +965,20 @@
           }
         });
 
-        if (bestSim < 0.08 && bestRuleFolder) {
+        if (!preferredFolder && bestSim < 0.08 && bestRuleFolder) {
           bestFolder = bestRuleFolder;
         }
         if (matchedTags.length === 0) matchedTags.push(getHostname(url), '网页收藏');
 
-        // 3) 3-sentence extractive summary
         const sentences = (content || title)
           .replace(/\s+/g, ' ')
           .split(/[。！？.!?]\s*/)
           .map((s) => s.trim())
           .filter((s) => s.length > 8);
-        const s1 = sentences[0] ? sentences[0].slice(0, 80) + '。' : `收录自 ${getHostname(url)} 的主题内容《${title.slice(0, 40)}》。`;
-        const s2 = sentences[1] ? sentences[1].slice(0, 80) + '。' : `内容涉及 ${matchedTags.slice(0, 2).join('、')} 等关键主题。`;
-        const s3 = sentences[2] ? sentences[2].slice(0, 80) + '。' : `由本地 TF-IDF 语义引擎归入「${bestFolder}」。`;
+        const s1 = sentences[0] ? sentences[0].slice(0, 80) + '。' : `收录自 ${getHostname(url)} 的书签《${title.slice(0, 40)}》。`;
+        const s2 = sentences[1] ? sentences[1].slice(0, 80) + '。' : `主题涉及 ${matchedTags.slice(0, 2).join('、')} 等关键概念。`;
+        const s3 = sentences[2] ? sentences[2].slice(0, 80) + '。' : `已归入「${bestFolder}」并建立语义关联。`;
 
-        // 4) Semantic edges with existing bookmarks
         const scoredEdges = [];
         state.bookmarks.forEach((b) => {
           if (b.id === excludeId) return;
@@ -1094,7 +1158,254 @@
       }
 
       // =========================================================================
-      // 8. Sidebar, Folder View & Detail Drawer Rendering
+      // 8. Multi-Format Importer (Netscape HTML / JSON / CSV / Markdown)
+      // =========================================================================
+      function parseNetscapeBookmarkHTML(htmlText) {
+        const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+        const results = [];
+
+        function walkDL(dlEl, folderStack) {
+          const children = Array.from(dlEl.children);
+          for (let i = 0; i < children.length; i++) {
+            const node = children[i];
+            if (node.tagName === 'DT') {
+              const h3 = node.querySelector(':scope > H3');
+              const a = node.querySelector(':scope > A');
+              const subDl = node.querySelector(':scope > DL');
+              if (h3) {
+                const folderName = h3.textContent.trim();
+                const nextStack = [...folderStack, folderName];
+                if (subDl) {
+                  walkDL(subDl, nextStack);
+                } else if (children[i + 1] && children[i + 1].tagName === 'DL') {
+                  walkDL(children[i + 1], nextStack);
+                }
+              } else if (a && a.getAttribute('href')) {
+                const href = a.getAttribute('href').trim();
+                if (/^https?:\/\//i.test(href)) {
+                  const cleanFolder = folderStack.filter((f) => !['书签栏', 'Bookmarks bar', 'Bookmarks Menu', 'Other Bookmarks', '其他书签'].includes(f)).pop() || folderStack[folderStack.length - 1] || null;
+                  results.push({
+                    title: a.textContent.trim() || href,
+                    url: href,
+                    folder: cleanFolder
+                  });
+                }
+              }
+            } else if (node.tagName === 'DL') {
+              walkDL(node, folderStack);
+            }
+          }
+        }
+
+        const rootDLs = doc.querySelectorAll('body > DL, DL');
+        if (rootDLs.length > 0) {
+          walkDL(rootDLs[0], []);
+        }
+        // Fallback if flat <a> tags
+        if (results.length === 0) {
+          doc.querySelectorAll('a[href]').forEach((a) => {
+            const href = a.getAttribute('href').trim();
+            if (/^https?:\/\//i.test(href)) {
+              results.push({ title: a.textContent.trim() || href, url: href, folder: null });
+            }
+          });
+        }
+        return results;
+      }
+
+      function parseCSVBookmarks(text) {
+        const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        if (lines.length === 0) return [];
+        const splitRow = (row) => {
+          const out = [];
+          let cur = '', inQ = false;
+          for (let i = 0; i < row.length; i++) {
+            const c = row[i];
+            if (c === '"') { inQ = !inQ; }
+            else if (c === ',' && !inQ) { out.push(cur.trim()); cur = ''; }
+            else cur += c;
+          }
+          out.push(cur.trim());
+          return out;
+        };
+
+        const firstCols = splitRow(lines[0]).map((c) => c.toLowerCase());
+        const hasHeader = firstCols.some((c) => ['url', 'href', 'link', 'title', 'name'].includes(c));
+        const startIdx = hasHeader ? 1 : 0;
+        const urlCol = hasHeader ? Math.max(0, firstCols.findIndex((c) => ['url', 'href', 'link'].includes(c))) : 1;
+        const titleCol = hasHeader ? Math.max(0, firstCols.findIndex((c) => ['title', 'name'].includes(c))) : 0;
+        const folderCol = hasHeader ? firstCols.findIndex((c) => ['folder', 'category', 'group'].includes(c)) : 2;
+
+        const items = [];
+        for (let i = startIdx; i < lines.length; i++) {
+          const cols = splitRow(lines[i]);
+          const url = cols[urlCol] || '';
+          if (/^https?:\/\//i.test(url)) {
+            items.push({
+              title: cols[titleCol] || url,
+              url,
+              folder: folderCol >= 0 ? (cols[folderCol] || null) : null
+            });
+          }
+        }
+        return items;
+      }
+
+      function parseMarkdownBookmarks(text) {
+        const lines = text.split(/\r?\n/);
+        let currentFolder = null;
+        const items = [];
+        const linkRe = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+
+        lines.forEach((line) => {
+          const headingMatch = line.match(/^#{1,4}\s+(.+)/);
+          if (headingMatch) {
+            currentFolder = headingMatch[1].trim();
+            return;
+          }
+          let m;
+          while ((m = linkRe.exec(line)) !== null) {
+            items.push({ title: m[1].trim(), url: m[2].trim(), folder: currentFolder });
+          }
+        });
+        return items;
+      }
+
+      async function importRawContent(filename, textContent) {
+        const lowerName = (filename || '').toLowerCase();
+        const mode = document.querySelector('input[name="import-mode"]:checked')?.value || 'keep';
+        let parsed = [];
+
+        if (lowerName.endsWith('.json') || textContent.trim().startsWith('[') || textContent.trim().startsWith('{')) {
+          const data = JSON.parse(textContent);
+          const arr = Array.isArray(data) ? data : (data.bookmarks || []);
+          parsed = arr.filter((x) => x && x.url).map((x) => ({
+            ...x,
+            title: x.title || x.name || x.url,
+            url: x.url,
+            folder: x.folder || null
+          }));
+        } else if (lowerName.endsWith('.html') || lowerName.endsWith('.htm') || /<!DOCTYPE NETSCAPE-Bookmark-file/i.test(textContent) || /<a\s+href=/i.test(textContent)) {
+          parsed = parseNetscapeBookmarkHTML(textContent);
+        } else if (lowerName.endsWith('.csv')) {
+          parsed = parseCSVBookmarks(textContent);
+        } else {
+          parsed = parseMarkdownBookmarks(textContent);
+        }
+
+        if (parsed.length === 0) {
+          showToast('未在文件中识别到有效的网页收藏链接', 'warning');
+          return;
+        }
+
+        const existingUrls = new Set(state.bookmarks.map((b) => b.url));
+        const newItems = [];
+        let skipped = 0;
+
+        parsed.forEach((raw, idx) => {
+          if (existingUrls.has(raw.url)) {
+            skipped++;
+            return;
+          }
+          existingUrls.add(raw.url);
+
+          // If native full NexusClip JSON with summary & keep mode, preserve directly
+          if (raw.summary && raw.tags && mode === 'keep') {
+            newItems.push({
+              ...raw,
+              id: raw.id || ('bm-' + Date.now().toString(36) + '-' + idx),
+              folder: raw.folder || '综合知识库',
+              createdAt: raw.createdAt || Date.now() - idx * 1000
+            });
+          } else {
+            const preferredFolder = mode === 'keep' ? raw.folder : null;
+            const analyzed = localFallbackAnalyze(raw.title, raw.url, raw.excerpt || raw.summary || raw.title, null, preferredFolder);
+            newItems.push({
+              id: 'bm-' + Date.now().toString(36) + '-' + idx + '-' + Math.random().toString(36).slice(2, 5),
+              folder: analyzed.folder,
+              title: raw.title || analyzed.title,
+              url: raw.url,
+              summary: analyzed.summary,
+              tags: raw.tags || analyzed.tags,
+              edges: analyzed.edges,
+              excerpt: raw.excerpt || '',
+              createdAt: Date.now() - idx * 1000,
+              engine: '本地引擎'
+            });
+          }
+        });
+
+        if (newItems.length > 0) {
+          await dbPutBatch(newItems);
+          state.bookmarks = [...newItems, ...state.bookmarks];
+          newItems.forEach((it) => {
+            state.expandedSidebarFolders.add(it.folder);
+            state.expandedGraphFolders.add(it.folder);
+          });
+          renderAll();
+        }
+
+        toggleModal('modal-import', false);
+        showToast(`导入完成：新增 ${newItems.length} 条${skipped ? `（跳过重复 ${skipped} 条）` : ''}`, 'success');
+      }
+
+      // =========================================================================
+      // 9. Per-Folder Visual Fingerprint SVG Chart Generator
+      // =========================================================================
+      function buildFolderChartSVG(items, folderName, color) {
+        // Compute top 3 tags in this folder + internal/cross-folder link metrics
+        const tagCounts = new Map();
+        let crossLinks = 0;
+        items.forEach((b) => {
+          (b.tags || []).forEach((t) => tagCounts.set(t, (tagCounts.get(t) || 0) + 1));
+          (b.edges || []).forEach((e) => {
+            const tgt = state.bookmarks.find((x) => x.id === e.targetId);
+            if (tgt && tgt.folder !== folderName) crossLinks++;
+          });
+        });
+
+        const topTags = Array.from(tagCounts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3);
+        const maxCount = topTags.length ? topTags[0][1] : 1;
+
+        // Mini bars (left side) + Mini topology spark (right side)
+        const barRows = topTags.map(([tag, cnt], i) => {
+          const y = 10 + i * 16;
+          const w = Math.max(18, Math.round((cnt / maxCount) * 86));
+          const shortTag = tag.length > 8 ? tag.slice(0, 7) + '…' : tag;
+          return `
+            <text x="0" y="${y + 8}" font-size="9.5" fill="currentColor" opacity="0.65" font-family="Inter, sans-serif">${escapeHtml(shortTag)}</text>
+            <rect x="58" y="${y}" width="86" height="9" rx="4.5" fill="currentColor" opacity="0.08"/>
+            <rect x="58" y="${y}" width="${w}" height="9" rx="4.5" fill="${color}" opacity="${0.9 - i * 0.18}"/>
+          `;
+        }).join('');
+
+        // Mini node constellation on right (x: 165..220)
+        const nodeCount = Math.min(5, items.length);
+        const cx = 194, cy = 28, r = 18;
+        let nodesSvg = `<circle cx="${cx}" cy="${cy}" r="5" fill="${color}"/>`;
+        for (let i = 0; i < nodeCount; i++) {
+          const ang = (i / Math.max(1, nodeCount)) * Math.PI * 2 - Math.PI / 2;
+          const nx = (cx + Math.cos(ang) * r).toFixed(1);
+          const ny = (cy + Math.sin(ang) * r).toFixed(1);
+          nodesSvg += `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${color}" stroke-width="1.2" opacity="0.45"/>`;
+          nodesSvg += `<circle cx="${nx}" cy="${ny}" r="3" fill="#ffffff" stroke="${color}" stroke-width="1.5"/>`;
+        }
+        if (crossLinks > 0) {
+          nodesSvg += `<circle cx="${cx}" cy="${cy}" r="22" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 3" opacity="0.7"/>`;
+        }
+
+        return `
+          <svg viewBox="0 0 226 56" class="w-full h-14 text-slate-700 dark:text-slate-300 overflow-visible" aria-hidden="true">
+            ${barRows || `<text x="0" y="30" font-size="10" fill="currentColor" opacity="0.4">暂无标签分布</text>`}
+            ${nodesSvg}
+          </svg>
+        `;
+      }
+
+      // =========================================================================
+      // 10. Sidebar, Folder View & Detail Drawer Rendering
       // =========================================================================
       function getFilteredBookmarks() {
         const q = state.searchQuery.trim().toLowerCase();
@@ -1145,11 +1456,7 @@
         `;
 
         if (filtered.length === 0) {
-          html += `
-            <div class="py-10 px-4 text-center text-xs text-slate-400">
-              <p>未找到匹配的收藏记录</p>
-            </div>
-          `;
+          html += `<div class="py-10 px-4 text-center text-xs text-slate-400"><p>未找到匹配的收藏记录</p></div>`;
           container.innerHTML = html;
           lucide.createIcons();
           return;
@@ -1202,7 +1509,6 @@
         const filtered = getFilteredBookmarks();
 
         if (!state.selectedFolder) {
-          // Folder Grid (macOS Finder style)
           const folderMap = new Map();
           filtered.forEach((b) => {
             if (!folderMap.has(b.folder)) folderMap.set(b.folder, []);
@@ -1212,16 +1518,23 @@
           let cardsHtml = '';
           folderMap.forEach((items, fName) => {
             const color = getFolderColor(fName);
+            const chartSvg = buildFolderChartSVG(items, fName, color);
             cardsHtml += `
-              <div class="group p-4 rounded-2xl bg-white dark:bg-[#0f141f] border border-slate-200/70 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-600/70 shadow-sm hover:shadow transition-all cursor-pointer" data-enter-folder="${escapeHtml(fName)}">
-                <div class="flex items-start justify-between gap-2">
-                  <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:${color}15">
-                    <i data-lucide="folder" class="w-5 h-5" style="color:${color}"></i>
+              <div class="group p-4 rounded-2xl bg-white dark:bg-[#0f141f] border border-slate-200/70 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-600/70 shadow-sm hover:shadow transition-all cursor-pointer flex flex-col justify-between gap-3" data-enter-folder="${escapeHtml(fName)}">
+                <div>
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style="background:${color}16">
+                        <i data-lucide="folder" class="w-4 h-4" style="color:${color}"></i>
+                      </div>
+                      <h3 class="text-sm font-semibold text-slate-900 dark:text-white truncate">${escapeHtml(fName)}</h3>
+                    </div>
+                    <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">${items.length} 项</span>
                   </div>
-                  <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">${items.length} 项</span>
                 </div>
-                <h3 class="mt-3 text-sm font-semibold text-slate-900 dark:text-white truncate">${escapeHtml(fName)}</h3>
-                <p class="mt-1 text-[11px] text-slate-400 line-clamp-1">${escapeHtml(items[0]?.title || '')}</p>
+                <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                  ${chartSvg}
+                </div>
               </div>
             `;
           });
@@ -1230,7 +1543,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <h1 class="text-base font-semibold text-slate-900 dark:text-white">全部文件夹</h1>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">共 ${folderMap.size} 个自动归纳目录 · ${filtered.length} 条网页收藏</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">每个文件夹均生成主题分布与拓扑指纹图表，点击进入目录</p>
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -1238,18 +1551,21 @@
             </div>
           `;
         } else {
-          // Inside a specific folder
           const items = filtered.filter((b) => b.folder === state.selectedFolder);
           const color = getFolderColor(state.selectedFolder);
+          const chartSvg = buildFolderChartSVG(items, state.selectedFolder, color);
 
           container.innerHTML = `
-            <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-              <button type="button" id="btn-folder-back-root" class="hover:text-slate-900 dark:hover:text-white transition-colors">全部文件夹</button>
-              <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-              <span class="inline-flex items-center gap-1.5 font-medium text-slate-900 dark:text-white">
-                <span class="w-2 h-2 rounded-full" style="background:${color}"></span>
-                ${escapeHtml(state.selectedFolder)}
-              </span>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-[#0f141f] border border-slate-200/70 dark:border-slate-800">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                  <button type="button" id="btn-folder-back-root" class="hover:text-slate-900 dark:hover:text-white transition-colors">全部文件夹</button>
+                  <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                  <span class="font-medium text-slate-900 dark:text-white">${escapeHtml(state.selectedFolder)}</span>
+                </div>
+                <div class="text-xs text-slate-400">共 ${items.length} 条网页收藏</div>
+              </div>
+              <div class="w-full sm:w-56 shrink-0">${chartSvg}</div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -1314,15 +1630,12 @@
             </a>
           </div>
 
-          <!-- Manual Folder Re-assignment -->
           <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-2">
             <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">归属文件夹（可手动调整）</label>
-            <div class="flex gap-1.5">
-              <select id="drawer-folder-select" class="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500">
-                ${folders.map((f) => `<option value="${escapeHtml(f)}" ${f === bm.folder ? 'selected' : ''}>${escapeHtml(f)}</option>`).join('')}
-                <option value="__NEW__">+ 新建文件夹...</option>
-              </select>
-            </div>
+            <select id="drawer-folder-select" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500">
+              ${folders.map((f) => `<option value="${escapeHtml(f)}" ${f === bm.folder ? 'selected' : ''}>${escapeHtml(f)}</option>`).join('')}
+              <option value="__NEW__">+ 新建文件夹...</option>
+            </select>
             <div id="drawer-new-folder-wrap" class="hidden flex gap-1.5 pt-1">
               <input id="drawer-new-folder-input" type="text" placeholder="输入新文件夹名称" class="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs outline-none focus:border-indigo-500" />
               <button id="btn-confirm-new-folder" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-900 dark:bg-indigo-600 text-white text-xs font-medium">确定</button>
@@ -1386,6 +1699,7 @@
         renderSidebar();
         if (state.viewMode === 'folder') renderFolderView();
         rebuildGraphData();
+        wakeGraph();
       }
 
       function setViewMode(mode) {
@@ -1403,6 +1717,7 @@
           fSec.classList.add('hidden');
           gBtn.className = activeCls;
           fBtn.className = idleCls;
+          wakeGraph();
         } else {
           gSec.classList.add('hidden');
           fSec.classList.remove('hidden');
@@ -1413,7 +1728,7 @@
       }
 
       // =========================================================================
-      // 9. Interactive HTML5 Canvas Knowledge Graph Engine
+      // 11. Interactive HTML5 Canvas Knowledge Graph (Sleep-on-Settle for Speed)
       // =========================================================================
       const graph = {
         canvas: null,
@@ -1426,8 +1741,16 @@
         isPanning: false,
         panStart: { x: 0, y: 0 },
         dragMoved: false,
-        rafId: null
+        rafId: null,
+        settledFrames: 0
       };
+
+      function wakeGraph() {
+        graph.settledFrames = 0;
+        if (!graph.rafId && graph.canvas) {
+          graph.rafId = requestAnimationFrame(drawGraph);
+        }
+      }
 
       function rebuildGraphData() {
         const oldPos = new Map(graph.nodes.map((n) => [n.id, { x: n.x, y: n.y }]));
@@ -1453,11 +1776,22 @@
           const items = folderGroups.get(fName);
           const isExpanded = state.expandedGraphFolders.has(fName);
 
+          // Cross-folder ratio for folder ring chart
+          let crossCount = 0;
+          items.forEach((b) => {
+            (b.edges || []).forEach((e) => {
+              const t = state.bookmarks.find((x) => x.id === e.targetId);
+              if (t && t.folder !== fName) crossCount++;
+            });
+          });
+          const crossRatio = Math.min(1, crossCount / Math.max(1, items.length * 1.5));
+
           nodes.push({
             id: fId,
             type: 'folder',
             label: fName,
             count: items.length,
+            crossRatio,
             expanded: isExpanded,
             color: getFolderColor(fName),
             x: fx,
@@ -1536,6 +1870,7 @@
         graph.nodes = nodes;
         graph.links = links;
         updateFocusLabel();
+        wakeGraph();
       }
 
       function updateFocusLabel() {
@@ -1549,6 +1884,7 @@
       function stepPhysics() {
         const nodes = graph.nodes;
         const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+        let totalEnergy = 0;
 
         for (let i = 0; i < nodes.length; i++) {
           for (let j = i + 1; j < nodes.length; j++) {
@@ -1594,23 +1930,29 @@
           n.vy *= 0.82;
           n.x += n.vx;
           n.y += n.vy;
+          totalEnergy += Math.abs(n.vx) + Math.abs(n.vy);
         });
+
+        return totalEnergy;
       }
 
       function drawGraph() {
         const canvas = graph.canvas;
         const ctx = graph.ctx;
-        if (!canvas || !ctx) return;
+        if (!canvas || !ctx) {
+          graph.rafId = null;
+          return;
+        }
 
+        const energy = stepPhysics();
         const dpr = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
+
         if (rect.width > 0 && rect.height > 0) {
           if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
             canvas.width = Math.round(rect.width * dpr);
             canvas.height = Math.round(rect.height * dpr);
           }
-
-          stepPhysics();
 
           const isDark = document.documentElement.classList.contains('dark');
           ctx.save();
@@ -1667,16 +2009,27 @@
             if (dimmed) ctx.globalAlpha = 0.28;
 
             if (n.type === 'folder') {
+              // Outer chart ring showing cross-folder semantic density
               ctx.beginPath();
-              ctx.arc(n.x, n.y, n.r + (isHover || isSelectedFolder ? 5 : 2.5), 0, Math.PI * 2);
-              ctx.fillStyle = n.color + '1c';
-              ctx.fill();
+              ctx.arc(n.x, n.y, n.r + 5, 0, Math.PI * 2);
+              ctx.strokeStyle = n.color + '26';
+              ctx.lineWidth = 2.5;
+              ctx.stroke();
+
+              if (n.crossRatio > 0) {
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, n.r + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * n.crossRatio);
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+              }
 
               ctx.beginPath();
               ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
               ctx.fillStyle = isDark ? '#0f141f' : '#ffffff';
               ctx.fill();
-              ctx.lineWidth = isSelectedFolder || isHover ? 2.8 : 2;
+              ctx.lineWidth = isSelectedFolder || isHover ? 2.6 : 1.8;
               ctx.strokeStyle = n.color;
               ctx.stroke();
 
@@ -1688,7 +2041,7 @@
 
               ctx.font = '600 11.5px "Inter", "Noto Sans SC", sans-serif';
               const labelW = ctx.measureText(n.label).width + 16;
-              const py = n.y + n.r + 13;
+              const py = n.y + n.r + 14;
               ctx.fillStyle = isDark ? 'rgba(15,20,31,0.9)' : 'rgba(255,255,255,0.94)';
               ctx.strokeStyle = isDark ? 'rgba(51,65,85,0.7)' : 'rgba(226,232,240,0.9)';
               ctx.lineWidth = 1;
@@ -1726,7 +2079,19 @@
 
           ctx.restore();
         }
-        graph.rafId = requestAnimationFrame(drawGraph);
+
+        // Pause RAF loop when settled and not dragging/panning (0% idle CPU)
+        if (!graph.dragNode && !graph.isPanning && energy < 0.04) {
+          graph.settledFrames++;
+        } else {
+          graph.settledFrames = 0;
+        }
+
+        if (graph.settledFrames > 15 || state.viewMode !== 'graph') {
+          graph.rafId = null;
+        } else {
+          graph.rafId = requestAnimationFrame(drawGraph);
+        }
       }
 
       function screenToWorld(clientX, clientY) {
@@ -1761,6 +2126,7 @@
             graph.isPanning = true;
             graph.panStart = { x: e.clientX - graph.cam.x, y: e.clientY - graph.cam.y };
           }
+          wakeGraph();
         });
 
         window.addEventListener('pointermove', (e) => {
@@ -1771,12 +2137,14 @@
             graph.dragNode.vx = 0;
             graph.dragNode.vy = 0;
             graph.dragMoved = true;
+            wakeGraph();
             return;
           }
           if (graph.isPanning) {
             graph.cam.x = e.clientX - graph.panStart.x;
             graph.cam.y = e.clientY - graph.panStart.y;
             graph.dragMoved = true;
+            wakeGraph();
             return;
           }
           if (state.viewMode !== 'graph') {
@@ -1787,14 +2155,17 @@
           if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
             const w = screenToWorld(e.clientX, e.clientY);
             const hit = findNodeAt(w.x, w.y);
-            graph.hoverNode = hit;
+            if (graph.hoverNode !== hit) {
+              graph.hoverNode = hit;
+              wakeGraph();
+            }
             graph.canvas.style.cursor = hit ? 'pointer' : 'grab';
             if (hit) {
               tooltip.classList.remove('hidden');
               tooltip.style.left = Math.min(window.innerWidth - 260, e.clientX + 14) + 'px';
               tooltip.style.top = Math.min(window.innerHeight - 90, e.clientY + 14) + 'px';
               if (hit.type === 'folder') {
-                tooltip.innerHTML = `<div class="font-semibold">${escapeHtml(hit.label)}</div><div class="text-slate-300 mt-0.5">${hit.count} 条收藏 · 点击${hit.expanded ? '收起' : '展开'}</div>`;
+                tooltip.innerHTML = `<div class="font-semibold">${escapeHtml(hit.label)}</div><div class="text-slate-300 mt-0.5">${hit.count} 条收藏 · 跨区关联 ${Math.round(hit.crossRatio * 100)}% · 点击${hit.expanded ? '收起' : '展开'}</div>`;
               } else {
                 const bm = state.bookmarks.find((b) => b.id === hit.id);
                 tooltip.innerHTML = `<div class="font-semibold">${escapeHtml(hit.label)}</div><div class="text-slate-300 mt-0.5">${escapeHtml(bm ? getHostname(bm.url) : '')} · 点击查看详情</div>`;
@@ -1821,6 +2192,7 @@
               rebuildGraphData();
             } else if (node.type === 'bookmark') {
               openBookmarkDrawer(node.id);
+              wakeGraph();
             }
           }
           graph.dragNode = null;
@@ -1831,14 +2203,14 @@
           e.preventDefault();
           const factor = e.deltaY < 0 ? 1.1 : 0.9;
           graph.cam.zoom = Math.max(0.4, Math.min(2.4, graph.cam.zoom * factor));
+          wakeGraph();
         }, { passive: false });
 
-        if (graph.rafId) cancelAnimationFrame(graph.rafId);
-        graph.rafId = requestAnimationFrame(drawGraph);
+        window.addEventListener('resize', wakeGraph);
       }
 
       // =========================================================================
-      // 10. UI Event Wiring & Modals
+      // 12. UI Event Wiring & Modals
       // =========================================================================
       function syncSettingsUI() {
         const s = state.settings;
@@ -1877,6 +2249,7 @@
         document.getElementById('btn-toggle-theme').addEventListener('click', () => {
           const isDark = document.documentElement.classList.toggle('dark');
           try { localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light'); } catch (_) {}
+          wakeGraph();
         });
 
         document.getElementById('btn-mode-graph').addEventListener('click', () => setViewMode('graph'));
@@ -1958,9 +2331,7 @@
             return;
           }
           const openBm = e.target.closest('[data-open-bookmark]');
-          if (openBm) {
-            openBookmarkDrawer(openBm.dataset.openBookmark);
-          }
+          if (openBm) openBookmarkDrawer(openBm.dataset.openBookmark);
         });
 
         // Drawer Controls & Manual Folder Change
@@ -1969,6 +2340,7 @@
           state.selectedBookmarkId = null;
           renderSidebar();
           if (state.viewMode === 'folder') renderFolderView();
+          wakeGraph();
         });
 
         document.getElementById('drawer-content').addEventListener('change', (e) => {
@@ -1985,8 +2357,7 @@
 
         document.getElementById('drawer-content').addEventListener('click', (e) => {
           if (e.target.closest('#btn-confirm-new-folder') && state.selectedBookmarkId) {
-            const val = document.getElementById('drawer-new-folder-input').value;
-            moveBookmarkToFolder(state.selectedBookmarkId, val);
+            moveBookmarkToFolder(state.selectedBookmarkId, document.getElementById('drawer-new-folder-input').value);
             return;
           }
           const jumpBtn = e.target.closest('[data-jump-bookmark]');
@@ -2015,15 +2386,19 @@
         });
         document.getElementById('btn-zoom-in').addEventListener('click', () => {
           graph.cam.zoom = Math.min(2.4, graph.cam.zoom * 1.2);
+          wakeGraph();
         });
         document.getElementById('btn-zoom-out').addEventListener('click', () => {
           graph.cam.zoom = Math.max(0.4, graph.cam.zoom * 0.85);
+          wakeGraph();
         });
         document.getElementById('btn-fit-graph').addEventListener('click', () => {
           graph.cam = { x: 0, y: 0, zoom: 1 };
+          wakeGraph();
         });
 
         // Modals
+        document.getElementById('btn-open-import').addEventListener('click', () => toggleModal('modal-import', true));
         document.getElementById('btn-simulate-clip').addEventListener('click', () => {
           syncSettingsUI();
           toggleModal('modal-clip', true);
@@ -2040,6 +2415,54 @@
           btn.addEventListener('click', () => toggleModal(btn.dataset.closeModal, false));
         });
 
+        // Multi-Format Import Events
+        const fileInput = document.getElementById('input-import-file');
+        const dropzone = document.getElementById('import-dropzone');
+        fileInput.addEventListener('change', async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          try {
+            await importRawContent(file.name, await file.text());
+          } catch (err) {
+            showToast(`导入失败：${err.message}`, 'error');
+          }
+          e.target.value = '';
+        });
+
+        dropzone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dropzone.classList.add('border-indigo-500');
+        });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('border-indigo-500'));
+        dropzone.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('border-indigo-500');
+          const file = e.dataTransfer?.files?.[0];
+          if (!file) return;
+          try {
+            await importRawContent(file.name, await file.text());
+          } catch (err) {
+            showToast(`导入失败：${err.message}`, 'error');
+          }
+        });
+
+        document.getElementById('btn-demo-html-import').addEventListener('click', async () => {
+          const sampleHtml = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+            <DL><p>
+              <DT><H3>云原生与架构</H3>
+              <DL><p>
+                <DT><A HREF="https://kubernetes.io/docs/concepts/overview/">Kubernetes 核心架构概念总览</A>
+                <DT><A HREF="https://martinfowler.com/articles/microservices.html">Martin Fowler：微服务架构演进指南</A>
+              </DL><p>
+              <DT><H3>效率与研究工具</H3>
+              <DL><p>
+                <DT><A HREF="https://obsidian.md/">Obsidian：本地优先的双向链接知识库</A>
+              </DL><p>
+            </DL><p>`;
+          await importRawContent('chrome_bookmarks.html', sampleHtml);
+        });
+
+        // Clip Form
         document.getElementById('btn-fill-sample-clip').addEventListener('click', () => {
           document.getElementById('clip-title').value = 'WebGPU 与浏览器端本地推理加速架构演进';
           document.getElementById('clip-url').value = 'https://web.dev/articles/webgpu-ai-inference';
@@ -2110,24 +2533,27 @@
           showToast('已导出 JSON 备份文件', 'success');
         });
 
-        document.getElementById('input-import-json').addEventListener('change', async (e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          try {
-            const text = await file.text();
-            const items = JSON.parse(text);
-            if (!Array.isArray(items)) throw new Error('格式无效');
-            await dbClearAndSeed(items);
-            state.bookmarks = items;
-            state.selectedFolder = null;
-            state.selectedBookmarkId = null;
-            renderAll();
-            toggleModal('modal-settings', false);
-            showToast(`成功导入 ${items.length} 条收藏`, 'success');
-          } catch (err) {
-            showToast(`导入失败：${err.message}`, 'error');
-          }
-          e.target.value = '';
+        document.getElementById('btn-export-html').addEventListener('click', () => {
+          const folderMap = new Map();
+          state.bookmarks.forEach((b) => {
+            if (!folderMap.has(b.folder)) folderMap.set(b.folder, []);
+            folderMap.get(b.folder).push(b);
+          });
+          let body = '';
+          folderMap.forEach((items, fName) => {
+            body += `  <DT><H3>${escapeHtml(fName)}</H3>\n  <DL><p>\n`;
+            items.forEach((b) => {
+              body += `    <DT><A HREF="${escapeHtml(b.url)}">${escapeHtml(b.title)}</A>\n`;
+            });
+            body += `  </DL><p>\n`;
+          });
+          const html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>NexusClip Bookmarks</TITLE>\n<H1>NexusClip Bookmarks</H1>\n<DL><p>\n${body}</DL><p>`;
+          const blob = new Blob([html], { type: 'text/html' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `nexusclip-bookmarks-${new Date().toISOString().slice(0, 10)}.html`;
+          a.click();
+          showToast('已导出标准浏览器书签 HTML', 'success');
         });
 
         document.getElementById('btn-reset-demo').addEventListener('click', async () => {
@@ -2148,7 +2574,7 @@
       }
 
       // =========================================================================
-      // 11. Bootstrap
+      // 13. Fast Bootstrap (No Blocking Font/Load Wait)
       // =========================================================================
       async function bootstrap() {
         initTheme();
@@ -2171,7 +2597,11 @@
         lucide.createIcons();
       }
 
-      window.addEventListener('DOMContentLoaded', bootstrap);
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootstrap);
+      } else {
+        bootstrap();
+      }
     })();
   </script>
 </body>
