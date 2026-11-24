@@ -75,13 +75,7 @@
         <i data-lucide="network" class="w-3.5 h-3.5"></i>
       </div>
       <span class="font-semibold text-[13px] tracking-tight text-slate-900 dark:text-white truncate">NexusClip</span>
-      <span class="hidden md:inline-block text-slate-300 dark:text-slate-700">/</span>
-      <div class="hidden md:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-        <span>拖拽至书签栏：</span>
-        <a id="bookmarklet-drag-top" href="#" class="bookmarklet-pill inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] font-medium text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:border-indigo-400 transition-colors" title="将此按钮拖到浏览器书签栏">
-          <span>⭐ 智能收藏</span>
-        </a>
-      </div>
+
     </div>
 
     <!-- Center: View Mode Switcher -->
@@ -347,7 +341,7 @@
 
         <div>
           <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">脚本源码</label>
-          <pre id="bookmarklet-code-preview" class="p-3 rounded-xl bg-slate-950 text-slate-300 font-mono text-[10px] leading-relaxed overflow-x-auto max-h-28"></pre>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">脚本内容已隐藏；可直接拖拽上方按钮到浏览器书签栏，或点击“复制脚本”。</p>
         </div>
       </div>
     </div>
@@ -861,12 +855,8 @@
           inputEl.value = urlVal;
         }
         const code = buildBookmarkletCode(urlVal);
-        const topLink = document.getElementById('bookmarklet-drag-top');
         const modalLink = document.getElementById('bookmarklet-drag-modal');
-        const preview = document.getElementById('bookmarklet-code-preview');
-        if (topLink) topLink.setAttribute('href', code);
         if (modalLink) modalLink.setAttribute('href', code);
-        if (preview) preview.textContent = code;
       }
 
       async function handleIncomingClipPayload(payload) {
@@ -1041,11 +1031,25 @@
       }
 
       function extractChatContent(data) {
-        const value = data?.choices?.[0]?.message?.content;
-        if (typeof value === 'string') return value.trim();
-        if (Array.isArray(value)) {
-          return value.map(part => typeof part === 'string' ? part : (part?.text || '')).join('').trim();
+        const choice = data?.choices?.[0];
+        const candidates = [
+          choice?.message?.content,
+          choice?.text,
+          data?.output_text,
+          data?.response,
+          data?.content,
+          data?.candidates?.[0]?.content?.parts?.map(p => p?.text || '').join('')
+        ];
+        for (const value of candidates) {
+          if (typeof value === 'string' && value.trim()) return value.trim();
+          if (Array.isArray(value)) {
+            const joined = value.map(part => typeof part === 'string' ? part : (part?.text || '')).join('').trim();
+            if (joined) return joined;
+          }
         }
+        // Some reasoning models return the visible answer in a separate field.
+        const reasoning = choice?.message?.reasoning;
+        if (typeof reasoning === 'string' && reasoning.trim()) return reasoning.trim();
         return '';
       }
 
@@ -1085,8 +1089,10 @@
           }
           const content = extractChatContent(data);
           if (!content) {
-            throw new Error(data?.error?.message || data?.message ||
-              '接口已响应，但没有返回 choices[0].message.content；请确认这是 OpenAI Chat Completions 兼容接口');
+            const shape = data && typeof data === 'object' ? Object.keys(data).join(', ') : typeof data;
+            const choiceShape = data?.choices?.[0] ? Object.keys(data.choices[0]).join(', ') : '无 choices[0]';
+            const detail = data?.error?.message || data?.message || '';
+            throw new Error(`HTTP 请求成功，但未找到可显示的模型文本。顶层字段：[${shape}]；首个 choice 字段：[${choiceShape}]。${detail} 请检查 Endpoint、模型名称及服务商返回格式。`);
           }
           return { content, normalizedUrl: url };
         } catch (err) {
@@ -2618,7 +2624,8 @@
 
         document.getElementById('bookmarklet-target-url').addEventListener('input', refreshBookmarkletLinks);
         document.getElementById('btn-copy-bookmarklet').addEventListener('click', () => {
-          const code = document.getElementById('bookmarklet-code-preview').textContent;
+          const code = document.getElementById('bookmarklet-drag-modal').getAttribute('href') || '';
+          if (!code) { showToast('请先填写采集页面地址', 'warning'); return; }
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(code).then(() => showToast('已复制书签脚本代码', 'success')).catch(() => fallbackCopy(code));
           } else fallbackCopy(code);
@@ -2659,8 +2666,7 @@
           state.settings.apiKey = document.getElementById('setting-apikey').value.trim();
           saveSettings(state.settings);
           syncSettingsUI();
-          toggleModal('modal-settings', false);
-          showToast('模型配置已保存至 localStorage', 'success');
+          showToast('模型配置已保存；窗口保持打开，可继续测试连接', 'success');
         });
 
         document.getElementById('btn-export-json').addEventListener('click', () => {
