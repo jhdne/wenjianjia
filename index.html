@@ -1011,54 +1011,90 @@
         };
       }
 
-      function normalizeEndpoint(rawUrl) {
-        let u = String(rawUrl || '').trim().replace(/\/+$/, '');
-        if (!u) return '';
-        if (u.endsWith('/chat/completions') || u.includes(':generateContent')) return u;
-        if (u.endsWith('/v1') || u.endsWith('/openai')) return u + '/chat/completions';
-        if (u.includes('11434') && !u.includes('/v1')) return u + '/v1/chat/completions';
-        if (u.includes('api.deepseek.com') && !u.includes('/chat/completions')) return u + '/chat/completions';
-        return u + '/v1/chat/completions';
+      // Accept complete Chat Completions URLs or provider base URLs.
+      function normalizeEndpoint(rawUrl, provider = '') {
+        const raw = String(rawUrl || '').trim();
+        if (!raw) return '';
+        if (!/^https?:\/\//i.test(raw)) throw new Error('Endpoint 必须以 http:// 或 https:// 开头');
+        const u = new URL(raw);
+        u.hash = '';
+        u.search = '';
+        const path = u.pathname.replace(/\/+$/, '');
+
+        if (/\/chat\/completions$/i.test(path) || /:generateContent$/i.test(path)) {
+          u.pathname = path;
+        } else if (/\/v1beta\/openai$/i.test(path) || /\/openai\/v1$/i.test(path) ||
+                   /\/v1$/i.test(path) || /\/openai$/i.test(path)) {
+          u.pathname = path + '/chat/completions';
+        } else if (/api\.deepseek\.com$/i.test(u.hostname)) {
+          u.pathname = path + '/chat/completions';
+        } else if (/generativelanguage\.googleapis\.com$/i.test(u.hostname) && !path) {
+          u.pathname = '/v1beta/openai/chat/completions';
+        } else if (/api\.groq\.com$/i.test(u.hostname) && !path) {
+          u.pathname = '/openai/v1/chat/completions';
+        } else if (/localhost|127\.0\.0\.1/i.test(u.hostname) && u.port === '11434' && !path) {
+          u.pathname = '/v1/chat/completions';
+        } else {
+          u.pathname = (path || '') + '/v1/chat/completions';
+        }
+        return u.toString().replace(/\/$/, '');
       }
 
-      async function callLLMChat({ endpoint, model, apiKey, messages, maxTokens = 800, timeoutMs = 25000 }) {
-        const url = normalizeEndpoint(endpoint);
-        if (!url) throw new Error('Endpoint 不能为空');
+      function extractChatContent(data) {
+        const value = data?.choices?.[0]?.message?.content;
+        if (typeof value === 'string') return value.trim();
+        if (Array.isArray(value)) {
+          return value.map(part => typeof part === 'string' ? part : (part?.text || '')).join('').trim();
+        }
+        return '';
+      }
+
+      async function callLLMChat({ endpoint, model, apiKey, provider = '', messages, maxTokens = 800, timeoutMs = 25000 }) {
+        const url = normalizeEndpoint(endpoint, provider);
+        if (!url) throw new Error('请先填写 API Endpoint');
+        if (!String(model || '').trim()) throw new Error('请填写 Model 名称');
+        const isOllama = provider === 'ollama' || /localhost|127\.0\.0\.1/.test(new URL(url).hostname);
+        if (!isOllama && !String(apiKey || '').trim()) throw new Error('API Key 为空：请填写该服务商的 API Key');
 
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), timeoutMs);
         try {
-          const headers = { 'Content-Type': 'application/json' };
-          if (apiKey && apiKey.trim()) {
-            headers['Authorization'] = `Bearer ${apiKey.trim()}`;
-          }
+          const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+          if (apiKey && apiKey.trim()) headers.Authorization = `Bearer ${apiKey.trim()}`;
           const res = await fetch(url, {
             method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
             headers,
             signal: ctrl.signal,
             body: JSON.stringify({
-              model: (model || 'gpt-4o-mini').trim(),
+              model: String(model).trim(),
               temperature: 0.2,
               max_tokens: maxTokens,
               messages
             })
           });
 
-          const text = await res.text();
+          const responseText = await res.text();
           let data = null;
-          try { data = JSON.parse(text); } catch (_) {}
-
+          try { data = JSON.parse(responseText); } catch (_) {}
           if (!res.ok) {
-            const detail = data?.error?.message || data?.message || text.slice(0, 160) || res.statusText;
-            throw new Error(`HTTP ${res.status}: ${detail}`);
+            const detail = data?.error?.message || data?.error?.type || data?.message ||
+              responseText.slice(0, 300) || res.statusText;
+            throw new Error(`HTTP ${res.status} ${res.statusText}: ${detail}`);
           }
-          const content = data?.choices?.[0]?.message?.content;
-          if (!content) throw new Error('模型返回内容为空（请检查模型名称或响应格式）');
+          const content = extractChatContent(data);
+          if (!content) {
+            throw new Error(data?.error?.message || data?.message ||
+              '接口已响应，但没有返回 choices[0].message.content；请确认这是 OpenAI Chat Completions 兼容接口');
+          }
           return { content, normalizedUrl: url };
         } catch (err) {
-          if (err.name === 'AbortError') throw new Error(`请求超时 (${Math.round(timeoutMs / 1000)}s)`);
-          if (err.message === 'Failed to fetch') {
-            throw new Error('网络或 CORS 跨域拦截（若为本地 Ollama 请设置 OLLAMA_ORIGINS=*；若在预览沙箱中可能受限于网络策略）');
+          if (err.name === 'AbortError') {
+            throw new Error(`请求超时（${Math.round(timeoutMs / 1000)} 秒）。请检查服务端可访问性及模型负载`);
+          }
+          if (err instanceof TypeError || /Failed to fetch|NetworkError|Load failed/i.test(err.message || '')) {
+            throw new Error('浏览器无法读取 API 响应：通常是 CORS 跨域、网络/DNS、HTTPS 页面请求 HTTP 接口或代理拦截。请确认服务商允许当前网页域名跨域；Ollama 需设置 OLLAMA_ORIGINS。纯前端代码无法绕过服务商的 CORS 限制。');
           }
           throw err;
         } finally {
@@ -1084,6 +1120,7 @@
             endpoint,
             model,
             apiKey,
+            provider: state.settings.provider,
             maxTokens: 24,
             timeoutMs: 12000,
             messages: [{ role: 'user', content: 'Reply with OK only.' }]
@@ -1096,6 +1133,7 @@
           state.settings.endpoint = normalizedUrl;
           state.settings.model = model;
           state.settings.apiKey = apiKey;
+          state.settings.provider = document.querySelector('.provider-btn.border-indigo-500')?.dataset.provider || state.settings.provider;
           saveSettings(state.settings);
           syncSettingsUI();
         } catch (err) {
@@ -1140,6 +1178,7 @@
             endpoint,
             model,
             apiKey,
+            provider,
             maxTokens: 900,
             timeoutMs: 25000,
             messages: [
@@ -2324,10 +2363,10 @@
           }`;
         });
 
-        const hasKey = Boolean(s.apiKey && s.apiKey.trim()) || s.provider === 'ollama';
-        document.getElementById('llm-status-dot').className = `w-1.5 h-1.5 rounded-full ${hasKey ? 'bg-emerald-500' : 'bg-amber-400'}`;
-        document.getElementById('clip-engine-hint').textContent = hasKey
-          ? `当前引擎：BYOK 直连 (${s.model})`
+        const credentialsReady = Boolean(s.endpoint && s.model && ((s.apiKey && s.apiKey.trim()) || s.provider === 'ollama'));
+        document.getElementById('llm-status-dot').className = `w-1.5 h-1.5 rounded-full ${credentialsReady ? 'bg-emerald-500' : 'bg-amber-400'}`;
+        document.getElementById('clip-engine-hint').textContent = credentialsReady
+          ? `当前引擎：BYOK（未验证）· ${s.model}`
           : '当前引擎：本地 TF-IDF 语义引擎';
       }
 
