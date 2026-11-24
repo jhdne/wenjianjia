@@ -475,7 +475,7 @@
         {
           id: 'bm-agent-arch',
           folder: 'AI 架构',
-          title: 'Anthropic 智能体工程实践',
+          title: '〔指南〕Anthropic 智能体工程实践',
           url: 'https://www.anthropic.com/research/building-effective-agents',
           summary: '阐述可组合工作流与自主智能体的设计边界及工具接口规范。',
           tags: ['Agent', '工作流', '架构'],
@@ -487,7 +487,7 @@
         {
           id: 'bm-rag-eval',
           folder: 'AI 架构',
-          title: 'GraphRAG 混合索引策略',
+          title: '〔论文〕GraphRAG 混合索引策略',
           url: 'https://arxiv.org/abs/2404.16130',
           summary: '结合向量检索与知识图谱社区摘要，显著提升跨文档多跳推理精度。',
           tags: ['GraphRAG', '知识图谱', '检索'],
@@ -499,7 +499,7 @@
         {
           id: 'bm-local-first',
           folder: '系统与存储',
-          title: 'Local-First 本地优先架构',
+          title: '〔架构〕Local-First 本地优先原则',
           url: 'https://www.inkandswitch.com/local-first/',
           summary: '以客户端本地存储为主数据源，实现零延迟交互与离线数据自主权。',
           tags: ['Local-First', 'IndexedDB', '隐私'],
@@ -511,7 +511,7 @@
         {
           id: 'bm-sqlite-vec',
           folder: '系统与存储',
-          title: 'IndexedDB 客户端索引优化',
+          title: '〔文档〕IndexedDB 客户端索引优化',
           url: 'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API',
           summary: '利用异步事务与冷热数据拆分，保障浏览器端海量书签零阻塞检索。',
           tags: ['IndexedDB', '存储', '性能'],
@@ -523,7 +523,7 @@
         {
           id: 'bm-pwa-craft',
           folder: '前端工程',
-          title: 'PWA 零安装桌面应用指南',
+          title: '〔规范〕PWA 零安装桌面应用',
           url: 'https://web.dev/explore/progressive-web-apps',
           summary: '借助 Manifest 与 Service Worker 实现免商店审核的离线桌面级体验。',
           tags: ['PWA', '离线缓存', '前端'],
@@ -535,7 +535,7 @@
         {
           id: 'bm-design-sys',
           folder: '前端工程',
-          title: 'Linear 工具美学与信息层级',
+          title: '〔设计〕Linear 工具美学与层级',
           url: 'https://linear.app/method',
           summary: '通过克制色彩、细线分隔与清晰排版构建高效率专业工作台。',
           tags: ['UI设计', '设计系统', '交互'],
@@ -547,7 +547,7 @@
         {
           id: 'bm-pkms-habit',
           folder: '产品研究',
-          title: 'Evergreen Notes 常青笔记法',
+          title: '〔方法〕Evergreen Notes 常青笔记',
           url: 'https://notes.andymatuschak.org/Evergreen_notes',
           summary: '将零散书签转化为原子化、以概念为核心的高密度知识节点。',
           tags: ['知识管理', '产品', '笔记'],
@@ -748,7 +748,9 @@
         searchQuery: '',
         selectedFolder: null,
         selectedBookmarkId: null,
-        isProcessing: false
+        isProcessing: false,
+        isRerunning: false,
+        cancelRerun: false
       };
 
       // =========================================================================
@@ -898,63 +900,120 @@
         return chosen.endsWith('。') ? chosen : chosen + '。';
       }
 
-      function localFallbackAnalyze(title, url, content, excludeId = null, preferredFolder = null) {
-        const rawText = `${title} ${url} ${content}`;
-        const inputFreq = toFreqMap(tokenize(rawText));
+      function polishBookmarkTitle(rawTitle, url = '') {
+        let t = String(rawTitle || '').trim()
+          .replace(/\s*[-|–—_·]\s*(知乎|掘金|GitHub|Medium|Substack|Wikipedia|CSDN|简书|少数派|36氪).*$/i, '')
+          .replace(/\s*[-|–—]\s*[^-|–—]{2,18}$/, '')
+          .replace(/[【\[]\s*([^】\]]+)\s*[】\]]/g, '〔$1〕')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (!t) t = getHostname(url) || '未命名书签';
+        if (!t.startsWith('〔')) {
+          const host = getHostname(url);
+          const prefix = /arxiv|scholar|ieee|acm/i.test(host) ? '〔论文〕'
+            : /github|gitlab|npmjs|pypi/i.test(host) ? '〔源码〕'
+            : /developer\.mozilla|web\.dev|docs\./i.test(host) ? '〔文档〕'
+            : '〔研报〕';
+          t = `${prefix}${t}`;
+        }
+        return t.length > 22 ? t.slice(0, 21) + '…' : t;
+      }
 
+      function normalizeFolderName(name) {
+        const n = String(name || '').trim();
+        if (!n) return '综合资料';
+        const alias = [
+          { target: 'AI 架构', match: /^(ai|llm|agent|大模型|人工智能|机器学习)/i },
+          { target: '前端工程', match: /^(frontend|web|ui|ux|前端|交互|设计)/i },
+          { target: '系统与存储', match: /^(system|infra|db|database|后端|架构|数据库|云原生)/i },
+          { target: '产品研究', match: /^(product|growth|note|产品|增长|知识管理)/i }
+        ];
+        for (const a of alias) {
+          if (a.match.test(n) && n.length <= 10) return a.target;
+        }
+        return n;
+      }
+
+      // Multi-method hybrid classification:
+      // 1) Domain & URL path prior  2) Weighted TF-IDF similarity  3) Keyword topic voting
+      function classifyBookmarkHybrid(title, url, content, excludeId = null, preferredFolder = null) {
+        if (preferredFolder) return normalizeFolderName(preferredFolder);
+        const scores = new Map();
+        const addScore = (folder, pts) => {
+          const f = normalizeFolderName(folder);
+          scores.set(f, (scores.get(f) || 0) + pts);
+        };
+
+        // Method 1: Domain & URL path prior (0.35 weight)
+        const hostPath = `${getHostname(url)} ${url}`.toLowerCase();
+        const domainRules = [
+          { folder: 'AI 架构', re: /(anthropic|openai|arxiv|huggingface|deepseek|groq|langchain|llama)/ },
+          { folder: '前端工程', re: /(web\.dev|developer\.mozilla|react|vuejs|tailwindcss|figma|linear\.app|css-tricks)/ },
+          { folder: '系统与存储', re: /(inkandswitch|kubernetes|docker|postgresql|sqlite|redis|rust-lang|martinfowler)/ },
+          { folder: '产品研究', re: /(andymatuschak|obsidian|notion|ycombinator|paulgraham|stratechery)/ }
+        ];
+        domainRules.forEach((dr) => {
+          if (dr.re.test(hostPath)) addScore(dr.folder, 0.35);
+        });
+
+        // Method 2: Weighted TF-IDF cosine similarity against existing folders (0.45 weight)
+        const weightedTokens = [
+          ...tokenize(title), ...tokenize(title), ...tokenize(title),
+          ...tokenize(url),
+          ...tokenize(content)
+        ];
+        const inputFreq = toFreqMap(weightedTokens);
         const folderFreqs = new Map();
         state.bookmarks.forEach((b) => {
           if (b.id === excludeId) return;
-          if (!folderFreqs.has(b.folder)) folderFreqs.set(b.folder, new Map());
-          const fm = folderFreqs.get(b.folder);
-          const bTokens = tokenize(`${b.title} ${(b.tags || []).join(' ')} ${b.summary} ${b.excerpt || ''}`);
-          bTokens.forEach((t) => fm.set(t, (fm.get(t) || 0) + 1));
+          const f = normalizeFolderName(b.folder);
+          if (!folderFreqs.has(f)) folderFreqs.set(f, new Map());
+          const fm = folderFreqs.get(f);
+          tokenize(`${b.title} ${b.title} ${(b.tags || []).join(' ')} ${b.summary}`).forEach((t) => {
+            fm.set(t, (fm.get(t) || 0) + 1);
+          });
+        });
+        folderFreqs.forEach((fm, fName) => {
+          const sim = cosineSim(inputFreq, fm);
+          if (sim > 0.02) addScore(fName, sim * 0.45);
         });
 
-        let bestFolder = preferredFolder || '综合资料';
-        let bestSim = 0;
-        if (!preferredFolder) {
-          folderFreqs.forEach((fm, fName) => {
-            const sim = cosineSim(inputFreq, fm);
-            if (sim > bestSim) {
-              bestSim = sim;
-              bestFolder = fName;
-            }
-          });
-        }
-
-        const lower = rawText.toLowerCase();
-        const rules = [
+        // Method 3: Multi-keyword topic voting (0.20 weight)
+        const lower = `${title} ${url} ${content}`.toLowerCase();
+        const topicLexicon = [
           { folder: 'AI 架构', keys: ['agent', 'llm', 'rag', 'gpt', 'claude', 'gemini', 'prompt', '大模型', '智能体', '向量', 'webgpu', '推理'] },
           { folder: '前端工程', keys: ['react', 'css', 'tailwind', 'canvas', 'svg', 'pwa', 'ui', 'ux', 'design', 'frontend', '前端', '设计', '交互'] },
           { folder: '系统与存储', keys: ['database', 'sql', 'indexeddb', 'cache', 'local-first', 'rust', 'go', 'docker', '数据库', '缓存', '架构', '系统'] },
           { folder: '产品研究', keys: ['product', 'growth', 'startup', 'note', 'knowledge', '产品', '增长', '知识管理', '效率', '商业'] }
         ];
-        const matchedTags = [];
-        let bestRuleFolder = null;
-        let bestRuleScore = 0;
-        rules.forEach((r) => {
-          let score = 0;
-          r.keys.forEach((k) => {
-            if (lower.includes(k)) {
-              score++;
-              if (matchedTags.length < 3 && !matchedTags.includes(k)) matchedTags.push(k);
-            }
-          });
-          if (score > bestRuleScore) {
-            bestRuleScore = score;
-            bestRuleFolder = r.folder;
-          }
+        topicLexicon.forEach((r) => {
+          let hits = 0;
+          r.keys.forEach((k) => { if (lower.includes(k)) hits++; });
+          if (hits > 0) addScore(r.folder, Math.min(0.25, hits * 0.06));
         });
 
-        if (!preferredFolder && bestSim < 0.08 && bestRuleFolder) {
-          bestFolder = bestRuleFolder;
-        }
-        if (matchedTags.length === 0) matchedTags.push(getHostname(url), '网页');
+        let bestFolder = '综合资料';
+        let bestScore = 0;
+        scores.forEach((sc, fName) => {
+          if (sc > bestScore) {
+            bestScore = sc;
+            bestFolder = fName;
+          }
+        });
+        return bestFolder;
+      }
 
-        const cleanTitle = title.replace(/\s*[-|–—_]\s*[^-|–—_]{2,24}$/, '').trim().slice(0, 22) || title.trim().slice(0, 22);
+      function localFallbackAnalyze(title, url, content, excludeId = null, preferredFolder = null) {
+        const bestFolder = classifyBookmarkHybrid(title, url, content, excludeId, preferredFolder);
+        const lower = `${title} ${url} ${content}`.toLowerCase();
+        const candidateKeys = ['agent', 'llm', 'rag', 'pwa', 'indexeddb', 'webgpu', 'react', 'canvas', 'docker', 'api', '大模型', '智能体', '前端', '设计', '架构', '数据库', '知识管理'];
+        const matchedTags = candidateKeys.filter((k) => lower.includes(k)).slice(0, 3);
+        if (matchedTags.length === 0) matchedTags.push(getHostname(url).split('.')[0] || '网页', bestFolder);
+
+        const cleanTitle = polishBookmarkTitle(title, url);
         const oneLineSummary = toOneSentence(content, `收录自 ${getHostname(url)} 的「${bestFolder}」参考资料。`);
 
+        const inputFreq = toFreqMap(tokenize(`${title} ${content}`));
         const scoredEdges = [];
         state.bookmarks.forEach((b) => {
           if (b.id === excludeId) return;
@@ -1215,11 +1274,12 @@
           if (!jsonMatch) throw new Error('模型未返回有效 JSON');
           const parsed = JSON.parse(jsonMatch[0]);
 
+          const finalFolder = normalizeFolderName(parsed.folder || classifyBookmarkHybrid(title, url, content, excludeId));
           return {
-            folder: String(parsed.folder || '综合资料').trim(),
-            title: String(parsed.title || title).trim().slice(0, 24),
+            folder: finalFolder,
+            title: polishBookmarkTitle(parsed.title || title, url),
             summary: toOneSentence(String(parsed.summary || ''), `收录自 ${getHostname(url)} 的参考资料。`),
-            tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 4).map(String) : ['网页'],
+            tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 3).map(String) : ['网页'],
             edges: [],
             engine: `LLM · ${model}`
           };
@@ -1272,8 +1332,17 @@
         }
       }
 
+      async function sleepMs(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
       async function rerunLocalBookmarks() {
-        const { apiKey, provider, endpoint } = state.settings;
+        if (state.isRerunning) {
+          state.cancelRerun = true;
+          showToast('正在停止批量精排...', 'info');
+          return;
+        }
+        const { apiKey, provider, endpoint, rpmLimit } = state.settings;
         const hasKey = Boolean(apiKey && apiKey.trim()) || provider === 'ollama' || (endpoint && endpoint.includes('11434'));
         if (!hasKey) {
           showToast('请先在模型设置中填入 API Key 或配置 Ollama', 'warning');
@@ -1283,14 +1352,17 @@
         const targets = state.bookmarks.filter((b) => b.engine === '本地引擎');
         if (targets.length === 0) return;
 
-        const btn = document.getElementById('btn-rerun-local');
-        btn.disabled = true;
-        document.getElementById('rerun-local-label').textContent = `精排中 (0/${targets.length})`;
+        const limit = Number(rpmLimit ?? 10);
+        const intervalMs = limit > 0 ? Math.ceil(60000 / limit) + 250 : 250;
+        const labelEl = document.getElementById('rerun-local-label');
+        state.isRerunning = true;
+        state.cancelRerun = false;
 
         let updatedCount = 0;
         for (let i = 0; i < targets.length; i++) {
+          if (state.cancelRerun) break;
           const bm = targets[i];
-          document.getElementById('rerun-local-label').textContent = `精排中 (${i + 1}/${targets.length})`;
+          labelEl.textContent = `精排 ${i + 1}/${targets.length} (点击停止)`;
           const res = await analyzeWithLLM(bm.title, bm.url, bm.excerpt || bm.summary, bm.id);
           if (res.engine !== '本地引擎') {
             bm.folder = res.folder;
@@ -1300,13 +1372,24 @@
             bm.engine = res.engine;
             await dbPut(bm);
             updatedCount++;
+            renderSidebar();
+            renderFolderView();
+          }
+          if (i < targets.length - 1 && !state.cancelRerun) {
+            const sec = Math.ceil(intervalMs / 1000);
+            for (let sLeft = sec; sLeft > 0; sLeft--) {
+              if (state.cancelRerun) break;
+              labelEl.textContent = `精排 ${i + 1}/${targets.length} · 等 ${sLeft}s`;
+              await sleepMs(1000);
+            }
           }
         }
 
-        btn.disabled = false;
+        state.isRerunning = false;
+        state.cancelRerun = false;
         renderAll();
         if (state.selectedBookmarkId) openBookmarkDrawer(state.selectedBookmarkId);
-        showToast(updatedCount > 0 ? `已完成 ${updatedCount} 条书签精排` : '精排未成功，请检查频率或模型配置', updatedCount > 0 ? 'success' : 'warning');
+        showToast(updatedCount > 0 ? `已完成 ${updatedCount} 条书签精排（按 ${limit || '不限'} RPM 节流）` : '批量精排已停止或未更新', updatedCount > 0 ? 'success' : 'warning');
       }
 
       // =========================================================================
@@ -1573,21 +1656,21 @@
         const rows = items.map((b, i) => `
           <tr class="group border-t border-slate-100 dark:border-slate-800/80 hover:bg-slate-50/90 dark:hover:bg-slate-800/35 transition-colors cursor-pointer" data-open-bookmark="${escapeHtml(b.id)}">
             <td class="px-3 py-3 text-[11px] font-mono text-slate-400 tabular-nums align-middle w-10">${String(i + 1).padStart(2, '0')}</td>
-            <td class="px-3 py-3 align-middle w-[20%]">
-              <div class="font-medium text-[13px] text-slate-900 dark:text-slate-100 truncate">${escapeHtml(b.title || '未命名')}</div>
+            <td class="px-3 py-2.5 align-middle w-[20%]">
+              <div class="font-medium text-xs text-slate-900 dark:text-slate-100 truncate" title="${escapeHtml(b.title || '未命名')}">${escapeHtml(b.title || '未命名')}</div>
               <div class="mt-0.5 flex items-center gap-1.5 text-[10px] text-slate-400">
                 <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${getFolderColor(b.folder)}"></span>
                 <span class="truncate">${escapeHtml(b.folder || '未分类')}</span>
               </div>
             </td>
-            <td class="px-3 py-3 align-middle w-[22%]">
-              <div class="flex flex-wrap items-center gap-1">
+            <td class="px-3 py-2.5 align-middle w-[23%]">
+              <div class="flex flex-nowrap items-center gap-1 overflow-x-auto whitespace-nowrap">
                 ${(b.tags || []).map((t) => `
-                  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] leading-none text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 shrink-0 whitespace-nowrap">
                     <span>${escapeHtml(t)}</span>
                     <button type="button" data-remove-tag="${escapeHtml(t)}" data-bm-id="${escapeHtml(b.id)}" class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 leading-none" title="删除标签">×</button>
                   </span>
-                `).join('') || '<span class="text-xs text-slate-300">—</span>'}
+                `).join('') || '<span class="text-[11px] text-slate-300">—</span>'}
               </div>
             </td>
             <td class="px-3 py-3 align-middle w-[16%]">
