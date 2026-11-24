@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexusClip · 智能收藏与知识图谱</title>
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="description" content="零安装 PWA + Bookmarklet 智能网页收藏与语义知识图谱工作台" />
+  <link id="pwa-manifest" rel="manifest" href="" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans SC', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root {
+      --bg-canvas: #fafafa;
+      --grid-dot: rgba(148, 163, 184, 0.24);
+    }
+    html.dark {
+      --bg-canvas: #0b0f17;
+      --grid-dot: rgba(71, 85, 105, 0.32);
+    }
+    body {
+      font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+      overscroll-behavior: none;
+    }
+    .graph-bg {
+      background-color: var(--bg-canvas);
+      background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.5);
+    }
+    .bookmarklet-pill {
+      cursor: grab;
+      user-select: none;
+    }
+    .bookmarklet-pill:active {
+      cursor: grabbing;
+    }
+  </style>
+</head>
+<body class="bg-white text-slate-900 dark:bg-[#0b0f17] dark:text-slate-100 h-screen w-screen overflow-hidden flex flex-col antialiased selection:bg-indigo-500/15 selection:text-indigo-600 dark:selection:text-indigo-300">
+
+  <!-- Minimalist Top Navigation Bar -->
+  <header class="h-12 shrink-0 border-b border-slate-200/70 dark:border-slate-800/80 bg-white/95 dark:bg-[#0f141f]/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 z-30">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <button id="btn-toggle-sidebar" class="lg:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors" title="切换侧边栏">
+        <i data-lucide="panel-left" class="w-4 h-4"></i>
+      </button>
+      <div class="w-7 h-7 rounded-lg bg-slate-900 dark:bg-indigo-600 flex items-center justify-center text-white shrink-0">
+        <i data-lucide="network" class="w-3.5 h-3.5"></i>
+      </div>
+      <span class="font-semibold text-[13px] tracking-tight text-slate-900 dark:text-white truncate">NexusClip</span>
+      <span class="hidden md:inline-block text-slate-300 dark:text-slate-700">/</span>
+      <div class="hidden md:flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+        <span>拖拽至书签栏：</span>
+        <a id="bookmarklet-drag-top" href="#" class="bookmarklet-pill inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] font-medium text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 hover:border-indigo-400 transition-colors" title="将此按钮拖到浏览器书签栏">
+          <span>⭐ 智能收藏</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Center: View Mode Switcher -->
+    <div class="flex items-center bg-slate-100/90 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+      <button id="btn-mode-graph" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm">
+        <i data-lucide="git-fork" class="w-3 h-3"></i>
+        <span>图谱</span>
+      </button>
+      <button id="btn-mode-folder" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <i data-lucide="folder" class="w-3 h-3"></i>
+        <span>文件夹</span>
+      </button>
+    </div>
+
+    <!-- Right Actions -->
+    <div class="flex items-center gap-1.5 shrink-0">
+      <button id="btn-rerun-local" class="hidden inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800/60 text-amber-700 dark:text-amber-300 text-[11px] font-medium hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors" title="使用已配置的大模型重新精排本地归档条目">
+        <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+        <span id="rerun-local-label">待精排 0</span>
+      </button>
+      <button id="btn-simulate-clip" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white text-[11px] font-medium transition-colors">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+        <span class="hidden sm:inline">采集</span>
+      </button>
+      <button id="btn-bookmarklet-guide" class="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors" title="书签脚本配置">
+        <i data-lucide="bookmark" class="w-4 h-4"></i>
+      </button>
+      <button id="btn-open-settings" class="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 text-[11px] font-medium transition-colors" title="BYOK 模型与数据设置">
+        <span id="llm-status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+        <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+      </button>
+      <button id="btn-toggle-theme" class="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors" title="切换明暗主题">
+        <i data-lucide="moon" class="w-3.5 h-3.5 dark:hidden"></i>
+        <i data-lucide="sun" class="w-3.5 h-3.5 hidden dark:block"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <div class="flex-1 flex min-h-0 relative overflow-hidden">
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-20 hidden lg:hidden"></div>
+
+    <!-- Left Sidebar: Classic Folder Tree -->
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 top-12 lg:top-0 w-72 sm:w-[300px] shrink-0 bg-slate-50/60 dark:bg-[#0f141f] border-r border-slate-200/70 dark:border-slate-800/80 flex flex-col z-20 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out">
+      <!-- Search -->
+      <div class="p-2.5 border-b border-slate-200/60 dark:border-slate-800/80">
+        <div class="relative">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          <input id="search-input" type="text" placeholder="搜索收藏、标签或域名..." class="w-full pl-8 pr-7 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 focus:border-indigo-500 rounded-lg outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition-colors" />
+          <button id="btn-clear-search" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Folder Tree -->
+      <div class="flex-1 overflow-y-auto p-2 space-y-0.5" id="folder-tree-container">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Footer -->
+      <div class="px-3 py-2 border-t border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+        <span id="sidebar-stats">0 文件夹 · 0 收藏</span>
+        <span id="storage-badge" class="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">IndexedDB</span>
+      </div>
+    </aside>
+
+    <!-- Right Workspace: Graph View & Folder Grid View -->
+    <main class="flex-1 relative min-w-0 h-full overflow-hidden">
+
+      <!-- View 1: Knowledge Graph -->
+      <section id="view-graph" class="w-full h-full relative graph-bg select-none">
+        <canvas id="graph-canvas" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
+
+        <!-- Top-Left Breadcrumb -->
+        <div class="absolute top-3 left-3 pointer-events-none">
+          <div class="pointer-events-auto inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 shadow-sm">
+            <span id="graph-focus-label" class="font-medium">全局知识图谱</span>
+            <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">·</span>
+            <span class="text-slate-400 hidden sm:inline">点击文件夹节点展开网页与跨目录连线</span>
+          </div>
+        </div>
+
+        <!-- Top-Right Graph Controls -->
+        <div class="absolute top-3 right-3 flex items-center gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/70 dark:border-slate-800 rounded-lg p-0.5 shadow-sm">
+          <button id="btn-expand-all" class="px-2 py-1 rounded-md text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">展开</button>
+          <button id="btn-collapse-all" class="px-2 py-1 rounded-md text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">收起</button>
+          <div class="w-px h-3.5 bg-slate-200 dark:bg-slate-700"></div>
+          <button id="btn-zoom-in" class="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800" title="放大">
+            <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
+          </button>
+          <button id="btn-zoom-out" class="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800" title="缩小">
+            <i data-lucide="zoom-out" class="w-3.5 h-3.5"></i>
+          </button>
+          <button id="btn-fit-graph" class="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800" title="重置视角">
+            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Bottom-Left Legend -->
+        <div class="absolute bottom-3 left-3 hidden sm:flex items-center gap-3 px-2.5 py-1 rounded-lg bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 pointer-events-none">
+          <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full border-2 border-indigo-500"></span> 文件夹</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full border-2 border-slate-400"></span> 网页</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-3.5 border-t-2 border-dashed border-amber-500"></span> 语义连线</span>
+        </div>
+      </section>
+
+      <!-- View 2: Classic Folder Grid / Finder View -->
+      <section id="view-folder" class="hidden w-full h-full overflow-y-auto bg-[#fafafa] dark:bg-[#0b0f17] p-4 sm:p-6">
+        <div id="folder-view-content" class="max-w-5xl mx-auto space-y-5">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- Hover Tooltip -->
+      <div id="graph-tooltip" class="hidden fixed z-40 pointer-events-none max-w-xs px-3 py-2 rounded-xl bg-slate-900/95 dark:bg-slate-800/95 text-white text-xs shadow-xl border border-slate-700/60 backdrop-blur-sm"></div>
+
+      <!-- Right Detail Inspector Drawer -->
+      <div id="detail-drawer" class="hidden absolute top-3 bottom-3 right-3 w-[calc(100%-1.5rem)] sm:w-[380px] bg-white/95 dark:bg-[#0f141f]/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xl flex flex-col z-20 overflow-hidden">
+        <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2 shrink-0">
+          <div class="flex items-center gap-2 min-w-0">
+            <span id="drawer-folder-badge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 truncate"></span>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <button id="btn-delete-bookmark" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors" title="删除收藏">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+            <button id="btn-close-drawer" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="关闭详情">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+        <div id="drawer-content" class="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: Clip / Simulate Webpage -->
+  <div id="modal-clip" class="hidden fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#0f141f] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-white">智能采集网页</h2>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">自动归入文件夹、提炼 3 句话摘要并建立语义连线</p>
+        </div>
+        <button data-close-modal="modal-clip" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <form id="form-clip" class="p-5 space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">网页标题</label>
+          <input id="clip-title" type="text" required placeholder="例如：Building Effective Agents - Anthropic" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">网页 URL</label>
+          <input id="clip-url" type="url" required placeholder="https://example.com/article" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-indigo-500 font-mono" />
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300">清洗后的正文内容</label>
+            <button type="button" id="btn-fill-sample-clip" class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline">填入示例文章</button>
+          </div>
+          <textarea id="clip-content" rows="4" required placeholder="书签脚本会自动清洗 DOM 正文并传入此处..." class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-indigo-500 resize-none"></textarea>
+        </div>
+        <div class="flex items-center justify-between pt-1">
+          <span id="clip-engine-hint" class="text-[11px] text-slate-500 dark:text-slate-400"></span>
+          <div class="flex items-center gap-2">
+            <button type="button" data-close-modal="modal-clip" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">取消</button>
+            <button type="submit" id="btn-submit-clip" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white text-xs font-medium transition-colors">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>智能归档</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Bookmarklet Guide -->
+  <div id="modal-bookmarklet" class="hidden fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#0f141f] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-white">书签脚本（Bookmarklet）</h2>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">零安装绕过登录墙，通过 postMessage / URL Hash 传回正文</p>
+        </div>
+        <button data-close-modal="modal-bookmarklet" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4 text-xs">
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="font-medium text-slate-800 dark:text-slate-100">第 1 步：拖拽按钮到浏览器书签栏</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">按 <kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px]">Ctrl/Cmd + Shift + B</kbd> 显示书签栏</div>
+          </div>
+          <a id="bookmarklet-drag-modal" href="#" class="bookmarklet-pill shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-slate-900 dark:bg-indigo-600 text-white font-medium shadow-sm hover:opacity-90 transition-opacity">
+            <span>⭐ 智能收藏</span>
+          </a>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">第 2 步：目标 Web 应用地址（部署到 GitHub Pages 后会自动识别）</label>
+          <div class="flex gap-2">
+            <input id="bookmarklet-target-url" type="url" class="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-mono text-[11px] text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500" />
+            <button id="btn-copy-bookmarklet" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium text-slate-700 dark:text-slate-200 shrink-0">复制脚本</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">脚本源码</label>
+          <pre id="bookmarklet-code-preview" class="p-3 rounded-xl bg-slate-950 text-slate-300 font-mono text-[10px] leading-relaxed overflow-x-auto max-h-28"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: BYOK Settings & Data Management -->
+  <div id="modal-settings" class="hidden fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#0f141f] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-white">BYOK 大模型直连与数据管理</h2>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">API Key 仅保存在当前浏览器 localStorage</p>
+        </div>
+        <button data-close-modal="modal-settings" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4 overflow-y-auto text-xs">
+        <div>
+          <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1.5">模型服务商预设</label>
+          <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5" id="provider-presets">
+            <button type="button" data-provider="openai" class="provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors">OpenAI</button>
+            <button type="button" data-provider="gemini" class="provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors">Gemini</button>
+            <button type="button" data-provider="deepseek" class="provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors">DeepSeek</button>
+            <button type="button" data-provider="groq" class="provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors">Groq</button>
+            <button type="button" data-provider="ollama" class="provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors">Ollama</button>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">API Endpoint (OpenAI 兼容格式)</label>
+            <input id="setting-endpoint" type="url" class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-mono text-[11px] text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Model 名称</label>
+              <input id="setting-model" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-mono text-[11px] text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
+            </div>
+            <div>
+              <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">API Key (Ollama 可留空)</label>
+              <input id="setting-apikey" type="password" placeholder="sk-..." class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-mono text-[11px] text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
+            </div>
+          </div>
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">失效时自动降级为本地 TF-IDF 语义引擎</span>
+            <button id="btn-save-settings" class="px-4 py-1.5 rounded-lg bg-slate-900 dark:bg-indigo-600 hover:opacity-90 text-white font-medium">保存配置</button>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+          <div class="font-medium text-slate-700 dark:text-slate-300">IndexedDB 本地数据</div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btn-export-json" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> 导出 JSON
+            </button>
+            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium cursor-pointer">
+              <i data-lucide="upload" class="w-3.5 h-3.5"></i> 导入 JSON
+              <input id="input-import-json" type="file" accept=".json,application/json" class="hidden" />
+            </label>
+            <button id="btn-reset-demo" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-medium">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 重置演示数据
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // 1. PWA Manifest & Safe Service Worker Registration
+      // =========================================================================
+      function initPWA() {
+        try {
+          const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#0f172a"/><circle cx="64" cy="40" r="14" fill="#6366f1"/><circle cx="36" cy="88" r="11" fill="#38bdf8"/><circle cx="92" cy="88" r="11" fill="#10b981"/><path d="M64 40 L36 88 M64 40 L92 88 M36 88 L92 88" stroke="#94a3b8" stroke-width="5" stroke-linecap="round"/></svg>`;
+          const iconUrl = 'data:image/svg+xml;base64,' + btoa(iconSvg);
+          const manifest = {
+            name: 'NexusClip · 智能收藏与知识图谱',
+            short_name: 'NexusClip',
+            start_url: '.',
+            display: 'standalone',
+            background_color: '#0b0f17',
+            theme_color: '#0f172a',
+            icons: [{ src: iconUrl, sizes: '128x128', type: 'image/svg+xml' }]
+          };
+          const mBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+          const manifestEl = document.getElementById('pwa-manifest');
+          if (manifestEl) manifestEl.href = URL.createObjectURL(mBlob);
+
+          if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+            const swCode = `
+              const CACHE = 'nexusclip-v2';
+              self.addEventListener('install', () => self.skipWaiting());
+              self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+              self.addEventListener('fetch', e => {
+                if (e.request.method !== 'GET') return;
+                e.respondWith(
+                  caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+                    if (res && res.status === 200 && res.type === 'basic') {
+                      const copy = res.clone();
+                      caches.open(CACHE).then(c => c.put(e.request, copy));
+                    }
+                    return res;
+                  }).catch(() => cached))
+                );
+              });
+            `;
+            const swBlob = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+          }
+        } catch (_) {}
+      }
+
+      // =========================================================================
+      // 2. Constants, Presets & Demo Seed Data
+      // =========================================================================
+      const FOLDER_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6'];
+
+      const LLM_PRESETS = {
+        openai: { endpoint: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o-mini' },
+        gemini: { endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', model: 'gemini-2.5-flash' },
+        deepseek: { endpoint: 'https://api.deepseek.com/chat/completions', model: 'deepseek-chat' },
+        groq: { endpoint: 'https://api.groq.com/openai/v1/chat/completions', model: 'llama-3.3-70b-versatile' },
+        ollama: { endpoint: 'http://localhost:11434/v1/chat/completions', model: 'qwen2.5:7b' }
+      };
+
+      const DEMO_BOOKMARKS = [
+        {
+          id: 'bm-agent-arch',
+          folder: 'AI 架构与 Agent',
+          title: 'Anthropic：构建高效智能体（Agent）的工程实践',
+          url: 'https://www.anthropic.com/research/building-effective-agents',
+          summary: '文章系统梳理了工作流（Workflows）与自主智能体（Agents）的边界，强调在可控性要求高的场景优先使用可组合的确定性工作流。核心模式包括提示链、路由分发、并行化及评估器-优化器循环。工具接口设计（ACI）与上下文工程往往比复杂框架本身更能决定系统稳定性。',
+          tags: ['Agent', '工作流编排', '提示工程', '系统设计'],
+          edges: [
+            { targetId: 'bm-local-first', relation: '工程简洁性与可组合原则', weight: 0.85 },
+            { targetId: 'bm-rag-eval', relation: '评估循环与上下文质量', weight: 0.88 }
+          ],
+          excerpt: 'Most successful implementations use simple, composable patterns rather than complex frameworks...',
+          createdAt: Date.now() - 86400000 * 6,
+          engine: 'LLM 预设'
+        },
+        {
+          id: 'bm-rag-eval',
+          folder: 'AI 架构与 Agent',
+          title: '知识检索增强（RAG）与语义图谱混合索引策略',
+          url: 'https://arxiv.org/abs/2404.16130',
+          summary: '单纯依赖向量余弦相似度在跨文档多跳推理时容易丢失全局结构，引入实体-关系知识图谱可显著提升全局问答准确度。通过社区聚类算法将局部文档摘要为高层主题节点，实现从宏观概念到微观证据的渐进式钻取。该架构同样适用于个人知识库与书签系统的语义连线。',
+          tags: ['GraphRAG', '知识图谱', '语义检索', '多跳推理'],
+          edges: [
+            { targetId: 'bm-sqlite-vec', relation: '向量与图谱混合存储', weight: 0.9 },
+            { targetId: 'bm-canvas-perf', relation: '大规模图谱前端渲染', weight: 0.78 }
+          ],
+          excerpt: 'Combining vector similarity with graph-based community summaries enables global sensemaking...',
+          createdAt: Date.now() - 86400000 * 5,
+          engine: 'LLM 预设'
+        },
+        {
+          id: 'bm-local-first',
+          folder: '系统与数据库',
+          title: 'Local-First 软件架构：数据归属与零延迟交互',
+          url: 'https://www.inkandswitch.com/local-first/',
+          summary: 'Local-First 理念主张将 IndexedDB 或嵌入式数据库作为应用的主数据源，使交互响应不受网络延迟制约。云端仅承担可选的加密同步角色，即使离线也能完成完整读写与检索。这种模式大幅降低了服务端运维成本并彻底保障用户隐私。',
+          tags: ['Local-First', 'IndexedDB', '离线应用', '隐私架构'],
+          edges: [
+            { targetId: 'bm-sqlite-vec', relation: '浏览器本地持久化引擎', weight: 0.92 },
+            { targetId: 'bm-pwa-craft', relation: '离线缓存与 PWA 实践', weight: 0.89 }
+          ],
+          excerpt: 'In local-first software, the availability of your data does not depend on any single server...',
+          createdAt: Date.now() - 86400000 * 4,
+          engine: 'LLM 预设'
+        },
+        {
+          id: 'bm-sqlite-vec',
+          folder: '系统与数据库',
+          title: '浏览器端向量检索与结构化存储性能优化',
+          url: 'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API',
+          summary: 'IndexedDB 支持异步事务与多索引查询，适合存储数万条结构化书签及清洗后的正文快照。结合轻量级词频特征或低维嵌入向量，可在前端毫秒级计算文档相似度。合理拆分热数据与正文冷数据对象仓库，能避免主线程阻塞。',
+          tags: ['IndexedDB', '客户端存储', '性能优化'],
+          edges: [
+            { targetId: 'bm-canvas-perf', relation: '前端主线程零阻塞优化', weight: 0.76 }
+          ],
+          excerpt: 'IndexedDB is a low-level API for client-side storage of significant amounts of structured data...',
+          createdAt: Date.now() - 86400000 * 3,
+          engine: 'LLM 预设'
+        },
+        {
+          id: 'bm-pwa-craft',
+          folder: '前端工程与设计',
+          title: '现代 PWA 渐进式应用：零商店审核的桌面级体验',
+          url: 'https://web.dev/explore/progressive-web-apps',
+          summary: '通过 Web App Manifest 与 Service Worker，单页应用可被用户直接固定到桌面或侧边栏并获得离线运行能力。相比传统浏览器插件，PWA 与 Bookmarklet 组合无需应用商店审核且跨浏览器通用。轻量化的设计让工具启动速度接近原生应用。',
+          tags: ['PWA', 'Service Worker', 'Bookmarklet', '零安装'],
+          edges: [
+            { targetId: 'bm-design-sys', relation: '桌面级克制界面规范', weight: 0.81 }
+          ],
+          excerpt: 'Progressive Web Apps provide installable, offline-capable experiences directly from the web...',
+          createdAt: Date.now() - 86400000 * 2,
+          engine: 'LLM 预设'
+        },
+        {
+          id: 'bm-canvas-perf',
+          folder: '前端工程与设计',
+          title: 'HTML5 Canvas 高帧率力导向图谱渲染指南',
+          url: 'https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas',
+          summary: '在渲染数百个节点与贝塞尔连线时，Canvas 相比 SVG 拥有更低的 DOM 重排开销。通过乘以 devicePixelRatio 适配 Retina 屏幕，并采用局部阻尼物理迭代，可实现丝滑的拖拽与缩放。收起未选中的分支节点能进一步减少视觉噪音与绘制成本。',
+          tags: ['Canvas', '知识图谱', '可视化', '60fps'],
+          edges: [
+            { targetId: 'bm-design-sys', relation: '信息密度与视觉降噪', weight: 0.84 }
+          ],
+          excerpt: 'Scaling canvas by devicePixelRatio and batching path strokes keeps graph interactions at 60fps...',
+          createdAt: Date.now() - 86400000 * 1.5,
+          engine: 'LLM 预设'
+        },
+        {
+          id: 'bm-design-sys',
+          folder: '前端工程与设计',
+          title: '顶级工具类产品的界面美学与信息层级',
+          url: 'https://linear.app/method',
+          summary: '专业机构级工具强调克制的色彩体系、1px 细线分隔与清晰的排版对比度，而非过度装饰。高频操作应当直接暴露在工作区边缘，低频配置收敛至二级弹窗。良好的键盘与鼠标微交互能显著提升知识工作者的心流体验。',
+          tags: ['UI美学', '设计系统', '交互设计'],
+          edges: [
+            { targetId: 'bm-pkms-habit', relation: '工具心流与长期留存', weight: 0.82 }
+          ],
+          excerpt: 'Craftsmanship in productivity tools comes from speed, precision, and uncluttered hierarchy...',
+          createdAt: Date.now() - 86400000,
+          engine: 'LLM 预设'
+        },
+        {
+          id: 'bm-pkms-habit',
+          folder: '产品策略与增长',
+          title: '为什么大多数“稍后阅读”书签最终沦为数字坟场',
+          url: 'https://notes.andymatuschak.org/Evergreen_notes',
+          summary: '传统书签工具只解决了“存入”动作，却把分类、提炼与关联的认知负担全部留给了未来的用户。引入大模型在收藏瞬间完成三句话摘要与跨主题连线，能将死板链接转化为可探索的知识网络。低摩擦触发机制是决定工具能否长期留存的关键。',
+          tags: ['知识管理', '稍后阅读', '产品思维', '语义网络'],
+          edges: [
+            { targetId: 'bm-agent-arch', relation: '自动化认知减负', weight: 0.86 }
+          ],
+          excerpt: 'Evergreen notes should be atomic, concept-oriented, and densely linked across contexts...',
+          createdAt: Date.now() - 3600000 * 12,
+          engine: 'LLM 预设'
+        }
+      ];
+
+      // =========================================================================
+      // 3. Storage Layer (IndexedDB + Safe Memory Fallback + localStorage)
+      // =========================================================================
+      const DB_NAME = 'NexusClipDB';
+      const DB_VERSION = 1;
+      const STORE_NAME = 'bookmarks';
+      const SETTINGS_KEY = 'nexusclip_llm_settings_v1';
+      const THEME_KEY = 'nexusclip_theme_v1';
+
+      let memoryFallbackBookmarks = [];
+      let useMemoryFallback = false;
+
+      function openDB() {
+        return new Promise((resolve, reject) => {
+          try {
+            if (!window.indexedDB) {
+              reject(new Error('IndexedDB unavailable'));
+              return;
+            }
+            const req = indexedDB.open(DB_NAME, DB_VERSION);
+            req.onupgradeneeded = (e) => {
+              const db = e.target.result;
+              if (!db.objectStoreNames.contains(STORE_NAME)) {
+                const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                store.createIndex('folder', 'folder', { unique: false });
+                store.createIndex('createdAt', 'createdAt', { unique: false });
+              }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+          } catch (err) {
+            reject(err);
+          }
+        });
+      }
+
+      async function dbGetAll() {
+        if (useMemoryFallback) return [...memoryFallbackBookmarks];
+        try {
+          const db = await openDB();
+          return await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const req = tx.objectStore(STORE_NAME).getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => reject(req.error);
+          });
+        } catch (_) {
+          useMemoryFallback = true;
+          document.getElementById('storage-badge').textContent = '内存存储';
+          return [...memoryFallbackBookmarks];
+        }
+      }
+
+      async function dbPut(item) {
+        if (useMemoryFallback) {
+          const idx = memoryFallbackBookmarks.findIndex((b) => b.id === item.id);
+          if (idx >= 0) memoryFallbackBookmarks[idx] = item;
+          else memoryFallbackBookmarks.push(item);
+          return;
+        }
+        try {
+          const db = await openDB();
+          await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            tx.objectStore(STORE_NAME).put(item);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+          });
+        } catch (_) {
+          useMemoryFallback = true;
+          memoryFallbackBookmarks.push(item);
+        }
+      }
+
+      async function dbDelete(id) {
+        if (useMemoryFallback) {
+          memoryFallbackBookmarks = memoryFallbackBookmarks.filter((b) => b.id !== id);
+          return;
+        }
+        try {
+          const db = await openDB();
+          await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            tx.objectStore(STORE_NAME).delete(id);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+          });
+        } catch (_) {
+          useMemoryFallback = true;
+          memoryFallbackBookmarks = memoryFallbackBookmarks.filter((b) => b.id !== id);
+        }
+      }
+
+      async function dbClearAndSeed(items) {
+        if (useMemoryFallback) {
+          memoryFallbackBookmarks = [...items];
+          return;
+        }
+        try {
+          const db = await openDB();
+          await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            store.clear();
+            items.forEach((item) => store.put(item));
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+          });
+        } catch (_) {
+          useMemoryFallback = true;
+          memoryFallbackBookmarks = [...items];
+        }
+      }
+
+      function loadSettings() {
+        const defaults = {
+          provider: 'openai',
+          endpoint: LLM_PRESETS.openai.endpoint,
+          model: LLM_PRESETS.openai.model,
+          apiKey: ''
+        };
+        try {
+          const raw = localStorage.getItem(SETTINGS_KEY);
+          if (!raw) return defaults;
+          return { ...defaults, ...JSON.parse(raw) };
+        } catch (_) {
+          return defaults;
+        }
+      }
+
+      function saveSettings(settings) {
+        try {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        } catch (_) {}
+      }
+
+      // =========================================================================
+      // 4. Application State
+      // =========================================================================
+      const state = {
+        bookmarks: [],
+        settings: loadSettings(),
+        viewMode: 'graph', // 'graph' | 'folder'
+        searchQuery: '',
+        selectedFolder: null,     // null = All
+        selectedBookmarkId: null,
+        expandedSidebarFolders: new Set(),
+        expandedGraphFolders: new Set(['AI 架构与 Agent', '前端工程与设计']),
+        isProcessing: false
+      };
+
+      // =========================================================================
+      // 5. Utilities & Toast
+      // =========================================================================
+      function showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const el = document.createElement('div');
+        const colors = {
+          info: 'bg-slate-900 dark:bg-slate-800 text-white border-slate-700',
+          success: 'bg-emerald-600 text-white border-emerald-500',
+          warning: 'bg-amber-600 text-white border-amber-500',
+          error: 'bg-rose-600 text-white border-rose-500'
+        };
+        el.className = `pointer-events-auto px-3.5 py-2 rounded-xl border text-xs font-medium shadow-lg flex items-center gap-2 transition-all duration-200 translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+        el.textContent = message;
+        container.appendChild(el);
+        requestAnimationFrame(() => el.classList.remove('translate-y-2', 'opacity-0'));
+        setTimeout(() => {
+          el.classList.add('translate-y-2', 'opacity-0');
+          setTimeout(() => el.remove(), 220);
+        }, 3000);
+      }
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function getFolderColor(folderName) {
+        let hash = 0;
+        for (let i = 0; i < folderName.length; i++) {
+          hash = (hash * 31 + folderName.charCodeAt(i)) >>> 0;
+        }
+        return FOLDER_COLORS[hash % FOLDER_COLORS.length];
+      }
+
+      function getHostname(url) {
+        try {
+          return new URL(url).hostname.replace(/^www\./, '');
+        } catch (_) {
+          return url;
+        }
+      }
+
+      function getAllFolderNames() {
+        return Array.from(new Set(state.bookmarks.map((b) => b.folder))).sort();
+      }
+
+      // =========================================================================
+      // 6. Bookmarklet Generator & Incoming Clip Receiver
+      // =========================================================================
+      function buildBookmarkletCode(targetUrl) {
+        const cleanTarget = (targetUrl || '').split('#')[0] || 'https://your-nexusclip-app.example.com';
+        const fnBody = `
+          (function(){
+            var d=document,l=location.href,t=d.title||l;
+            var root=d.querySelector('article,main,[role="main"]')||d.body;
+            var clone=root.cloneNode(true);
+            var rm=clone.querySelectorAll('script,style,noscript,nav,header,footer,aside,iframe,svg');
+            for(var i=0;i<rm.length;i++){rm[i].remove();}
+            var txt=(clone.innerText||clone.textContent||'').replace(/\\s+/g,' ').trim().slice(0,3600);
+            var payload={type:'NEXUS_CLIP',title:t,url:l,content:txt,clippedAt:Date.now()};
+            var json=JSON.stringify(payload);
+            var b64=btoa(unescape(encodeURIComponent(json)));
+            var dest=${JSON.stringify(cleanTarget)}+'#clip='+encodeURIComponent(b64);
+            var w=window.open(dest,'NexusClipWindow');
+            if(w){setTimeout(function(){try{w.postMessage(payload,'*');}catch(e){}},600);}
+          })();
+        `.replace(/\s+/g, ' ').trim();
+        return 'javascript:' + fnBody;
+      }
+
+      function refreshBookmarkletLinks() {
+        const inputEl = document.getElementById('bookmarklet-target-url');
+        let urlVal = inputEl.value.trim();
+        if (!urlVal) {
+          urlVal = window.location.protocol.startsWith('http')
+            ? window.location.href.split('#')[0]
+            : 'https://your-domain.com/';
+          inputEl.value = urlVal;
+        }
+        const code = buildBookmarkletCode(urlVal);
+        const topLink = document.getElementById('bookmarklet-drag-top');
+        const modalLink = document.getElementById('bookmarklet-drag-modal');
+        const preview = document.getElementById('bookmarklet-code-preview');
+        if (topLink) topLink.setAttribute('href', code);
+        if (modalLink) modalLink.setAttribute('href', code);
+        if (preview) preview.textContent = code;
+      }
+
+      async function handleIncomingClipPayload(payload) {
+        if (!payload || payload.type !== 'NEXUS_CLIP' || !payload.url) return;
+        showToast(`收到网页采集：${payload.title || payload.url}`, 'info');
+        await processAndSaveClip({
+          title: payload.title || payload.url,
+          url: payload.url,
+          content: payload.content || payload.title || ''
+        });
+      }
+
+      function checkHashForClip() {
+        try {
+          const hash = window.location.hash || '';
+          if (hash.startsWith('#clip=')) {
+            const encoded = decodeURIComponent(hash.slice(6));
+            const json = decodeURIComponent(escape(atob(encoded)));
+            const payload = JSON.parse(json);
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+            handleIncomingClipPayload(payload);
+          }
+        } catch (_) {}
+      }
+
+      // =========================================================================
+      // 7. BYOK LLM Processor & Local TF-IDF Similarity Fallback Engine
+      // =========================================================================
+      function tokenize(text) {
+        const clean = (text || '').toLowerCase();
+        const en = clean.match(/[a-z0-9]{2,}/g) || [];
+        const zhChars = clean.match(/[\u4e00-\u9fa5]/g) || [];
+        const zhBigrams = [];
+        for (let i = 0; i < zhChars.length - 1; i++) {
+          zhBigrams.push(zhChars[i] + zhChars[i + 1]);
+        }
+        return [...en, ...zhBigrams];
+      }
+
+      function cosineSim(freqA, freqB) {
+        let dot = 0, normA = 0, normB = 0;
+        freqA.forEach((v, k) => {
+          normA += v * v;
+          if (freqB.has(k)) dot += v * freqB.get(k);
+        });
+        freqB.forEach((v) => { normB += v * v; });
+        if (!normA || !normB) return 0;
+        return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+      }
+
+      function toFreqMap(tokens) {
+        const m = new Map();
+        tokens.forEach((t) => m.set(t, (m.get(t) || 0) + 1));
+        return m;
+      }
+
+      function localFallbackAnalyze(title, url, content, excludeId = null) {
+        const rawText = `${title} ${url} ${content}`;
+        const inputFreq = toFreqMap(tokenize(rawText));
+
+        // 1) Similarity against existing folders in IndexedDB
+        const folderFreqs = new Map();
+        state.bookmarks.forEach((b) => {
+          if (b.id === excludeId) return;
+          if (!folderFreqs.has(b.folder)) folderFreqs.set(b.folder, new Map());
+          const fm = folderFreqs.get(b.folder);
+          const bTokens = tokenize(`${b.title} ${(b.tags || []).join(' ')} ${b.summary} ${b.excerpt || ''}`);
+          bTokens.forEach((t) => fm.set(t, (fm.get(t) || 0) + 1));
+        });
+
+        let bestFolder = '综合知识库';
+        let bestSim = 0;
+        folderFreqs.forEach((fm, fName) => {
+          const sim = cosineSim(inputFreq, fm);
+          if (sim > bestSim) {
+            bestSim = sim;
+            bestFolder = fName;
+          }
+        });
+
+        // 2) Keyword rule boost if similarity is low
+        const lower = rawText.toLowerCase();
+        const rules = [
+          { folder: 'AI 架构与 Agent', keys: ['agent', 'llm', 'rag', 'gpt', 'claude', 'gemini', 'prompt', '大模型', '智能体', '向量', 'webgpu', '推理'] },
+          { folder: '前端工程与设计', keys: ['react', 'css', 'tailwind', 'canvas', 'svg', 'pwa', 'ui', 'ux', 'design', 'frontend', '前端', '设计', '交互'] },
+          { folder: '系统与数据库', keys: ['database', 'sql', 'indexeddb', 'cache', 'local-first', 'rust', 'go', 'docker', '数据库', '缓存', '架构', '系统'] },
+          { folder: '产品策略与增长', keys: ['product', 'growth', 'startup', 'note', 'knowledge', '产品', '增长', '知识管理', '效率', '商业'] }
+        ];
+        const matchedTags = [];
+        let bestRuleFolder = null;
+        let bestRuleScore = 0;
+        rules.forEach((r) => {
+          let score = 0;
+          r.keys.forEach((k) => {
+            if (lower.includes(k)) {
+              score++;
+              if (matchedTags.length < 4 && !matchedTags.includes(k)) matchedTags.push(k);
+            }
+          });
+          if (score > bestRuleScore) {
+            bestRuleScore = score;
+            bestRuleFolder = r.folder;
+          }
+        });
+
+        if (bestSim < 0.08 && bestRuleFolder) {
+          bestFolder = bestRuleFolder;
+        }
+        if (matchedTags.length === 0) matchedTags.push(getHostname(url), '网页收藏');
+
+        // 3) 3-sentence extractive summary
+        const sentences = (content || title)
+          .replace(/\s+/g, ' ')
+          .split(/[。！？.!?]\s*/)
+          .map((s) => s.trim())
+          .filter((s) => s.length > 8);
+        const s1 = sentences[0] ? sentences[0].slice(0, 80) + '。' : `收录自 ${getHostname(url)} 的主题内容《${title.slice(0, 40)}》。`;
+        const s2 = sentences[1] ? sentences[1].slice(0, 80) + '。' : `内容涉及 ${matchedTags.slice(0, 2).join('、')} 等关键主题。`;
+        const s3 = sentences[2] ? sentences[2].slice(0, 80) + '。' : `由本地 TF-IDF 语义引擎归入「${bestFolder}」。`;
+
+        // 4) Semantic edges with existing bookmarks
+        const scoredEdges = [];
+        state.bookmarks.forEach((b) => {
+          if (b.id === excludeId) return;
+          const bFreq = toFreqMap(tokenize(`${b.title} ${(b.tags || []).join(' ')} ${b.summary}`));
+          const sim = cosineSim(inputFreq, bFreq);
+          if (sim > 0.08) {
+            scoredEdges.push({
+              targetId: b.id,
+              relation: b.folder === bestFolder ? '同主题深度关联' : '跨文件夹语义共现',
+              weight: Math.min(0.95, 0.55 + sim)
+            });
+          }
+        });
+        scoredEdges.sort((a, b) => b.weight - a.weight);
+
+        return {
+          folder: bestFolder,
+          title: title.trim().slice(0, 60),
+          summary: `${s1}${s2}${s3}`,
+          tags: matchedTags.slice(0, 4),
+          edges: scoredEdges.slice(0, 2),
+          engine: '本地引擎'
+        };
+      }
+
+      async function analyzeWithLLM(title, url, content, excludeId = null) {
+        const { endpoint, model, apiKey, provider } = state.settings;
+        const hasKey = Boolean(apiKey && apiKey.trim());
+        const isOllama = provider === 'ollama' || (endpoint && endpoint.includes('11434'));
+
+        if (!hasKey && !isOllama) {
+          return localFallbackAnalyze(title, url, content, excludeId);
+        }
+
+        const existingFolders = getAllFolderNames();
+        const existingContext = state.bookmarks
+          .filter((b) => b.id !== excludeId)
+          .slice(0, 20)
+          .map((b) => ({ id: b.id, folder: b.folder, title: b.title, tags: b.tags }));
+
+        const systemPrompt = `你是一个知识图谱归档引擎。请根据网页标题、URL和清洗后的正文，输出严格的 JSON 对象（不要包含 Markdown 代码块或多余文字）：
+{
+  "folder": "建议归属文件夹（优先复用已有文件夹：${existingFolders.join('、') || '无'}，不匹配则新建简短文件夹名）",
+  "title": "提炼后的清晰中文标题（不超过32字）",
+  "summary": "核心摘要（严格提炼为3句精炼客观的中文陈述）",
+  "tags": ["标签1", "标签2", "标签3"],
+  "edges": [
+    { "targetId": "已有书签id", "relation": "4-10字语义关联说明", "weight": 0.85 }
+  ]
+}
+已有书签列表：${JSON.stringify(existingContext)}`;
+
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (hasKey) headers['Authorization'] = `Bearer ${apiKey.trim()}`;
+
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              model: model || 'gpt-4o-mini',
+              temperature: 0.2,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `标题：${title}\nURL：${url}\n正文：${(content || '').slice(0, 3200)}` }
+              ]
+            })
+          });
+
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          const rawText = data?.choices?.[0]?.message?.content || '';
+          const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) throw new Error('JSON 解析失败');
+          const parsed = JSON.parse(jsonMatch[0]);
+
+          const validIds = new Set(state.bookmarks.map((b) => b.id));
+          const cleanEdges = Array.isArray(parsed.edges)
+            ? parsed.edges.filter((e) => e && e.targetId !== excludeId && validIds.has(e.targetId)).slice(0, 4)
+            : [];
+
+          return {
+            folder: String(parsed.folder || '综合知识库').trim(),
+            title: String(parsed.title || title).trim(),
+            summary: String(parsed.summary || '').trim(),
+            tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 5).map(String) : ['网页收藏'],
+            edges: cleanEdges,
+            engine: `LLM · ${model}`
+          };
+        } catch (err) {
+          showToast(`LLM 请求失败 (${err.message})，已自动降级为本地引擎`, 'warning');
+          return localFallbackAnalyze(title, url, content, excludeId);
+        }
+      }
+
+      async function processAndSaveClip({ title, url, content }) {
+        if (state.isProcessing) return;
+        state.isProcessing = true;
+        const submitBtn = document.getElementById('btn-submit-clip');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>分析归档中...</span>`;
+          lucide.createIcons();
+        }
+
+        try {
+          const result = await analyzeWithLLM(title, url, content);
+          const newItem = {
+            id: 'bm-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+            folder: result.folder,
+            title: result.title,
+            url,
+            summary: result.summary,
+            tags: result.tags,
+            edges: result.edges,
+            excerpt: (content || '').slice(0, 600),
+            createdAt: Date.now(),
+            engine: result.engine
+          };
+
+          await dbPut(newItem);
+          state.bookmarks.unshift(newItem);
+          state.expandedSidebarFolders.add(newItem.folder);
+          state.expandedGraphFolders.add(newItem.folder);
+          state.selectedFolder = newItem.folder;
+          state.selectedBookmarkId = newItem.id;
+
+          renderAll();
+          openBookmarkDrawer(newItem.id);
+          showToast(`已归档至「${newItem.folder}」(${newItem.engine})`, 'success');
+        } finally {
+          state.isProcessing = false;
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5"></i><span>智能归档</span>`;
+            lucide.createIcons();
+          }
+        }
+      }
+
+      async function rerunLocalBookmarks() {
+        const { apiKey, provider, endpoint } = state.settings;
+        const hasKey = Boolean(apiKey && apiKey.trim()) || provider === 'ollama' || (endpoint && endpoint.includes('11434'));
+        if (!hasKey) {
+          showToast('请先在 BYOK 设置中填入 API Key 或配置本地 Ollama', 'warning');
+          toggleModal('modal-settings', true);
+          return;
+        }
+        const targets = state.bookmarks.filter((b) => b.engine === '本地引擎');
+        if (targets.length === 0) return;
+
+        const btn = document.getElementById('btn-rerun-local');
+        btn.disabled = true;
+        document.getElementById('rerun-local-label').textContent = `精排中 (0/${targets.length})`;
+
+        let updatedCount = 0;
+        for (let i = 0; i < targets.length; i++) {
+          const bm = targets[i];
+          document.getElementById('rerun-local-label').textContent = `精排中 (${i + 1}/${targets.length})`;
+          const res = await analyzeWithLLM(bm.title, bm.url, bm.excerpt || bm.summary, bm.id);
+          if (res.engine !== '本地引擎') {
+            bm.folder = res.folder;
+            bm.title = res.title;
+            bm.summary = res.summary;
+            bm.tags = res.tags;
+            bm.edges = res.edges;
+            bm.engine = res.engine;
+            await dbPut(bm);
+            updatedCount++;
+          }
+        }
+
+        btn.disabled = false;
+        renderAll();
+        if (state.selectedBookmarkId) openBookmarkDrawer(state.selectedBookmarkId);
+        showToast(updatedCount > 0 ? `已完成 ${updatedCount} 条收藏的大模型精排` : '精排未成功，请检查模型配置', updatedCount > 0 ? 'success' : 'warning');
+      }
+
+      // =========================================================================
+      // 8. Sidebar, Folder View & Detail Drawer Rendering
+      // =========================================================================
+      function getFilteredBookmarks() {
+        const q = state.searchQuery.trim().toLowerCase();
+        if (!q) return state.bookmarks;
+        return state.bookmarks.filter((b) => {
+          return (
+            (b.title || '').toLowerCase().includes(q) ||
+            (b.summary || '').toLowerCase().includes(q) ||
+            (b.folder || '').toLowerCase().includes(q) ||
+            (b.url || '').toLowerCase().includes(q) ||
+            (b.tags || []).some((t) => t.toLowerCase().includes(q))
+          );
+        });
+      }
+
+      function updateRerunBadge() {
+        const localCount = state.bookmarks.filter((b) => b.engine === '本地引擎').length;
+        const btn = document.getElementById('btn-rerun-local');
+        const label = document.getElementById('rerun-local-label');
+        if (localCount > 0) {
+          btn.classList.remove('hidden');
+          label.textContent = `待精排 ${localCount}`;
+        } else {
+          btn.classList.add('hidden');
+        }
+      }
+
+      function renderSidebar() {
+        const container = document.getElementById('folder-tree-container');
+        const filtered = getFilteredBookmarks();
+        const folderMap = new Map();
+
+        filtered.forEach((b) => {
+          if (!folderMap.has(b.folder)) folderMap.set(b.folder, []);
+          folderMap.get(b.folder).push(b);
+        });
+
+        document.getElementById('sidebar-stats').textContent = `${folderMap.size} 文件夹 · ${filtered.length} 收藏`;
+
+        let html = `
+          <div class="flex items-center justify-between px-2.5 py-1.5 mb-1 rounded-lg cursor-pointer transition-colors ${state.selectedFolder === null ? 'bg-slate-200/70 dark:bg-slate-800 text-slate-900 dark:text-white font-medium' : 'hover:bg-slate-100 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-300'}" data-select-all="true">
+            <div class="flex items-center gap-2 text-xs">
+              <i data-lucide="layers" class="w-3.5 h-3.5 text-slate-500"></i>
+              <span>全部收藏</span>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400">${filtered.length}</span>
+          </div>
+        `;
+
+        if (filtered.length === 0) {
+          html += `
+            <div class="py-10 px-4 text-center text-xs text-slate-400">
+              <p>未找到匹配的收藏记录</p>
+            </div>
+          `;
+          container.innerHTML = html;
+          lucide.createIcons();
+          return;
+        }
+
+        folderMap.forEach((items, folderName) => {
+          const isSelectedFolder = state.selectedFolder === folderName;
+          const isExpanded = state.expandedSidebarFolders.has(folderName) || Boolean(state.searchQuery.trim());
+          const color = getFolderColor(folderName);
+
+          html += `
+            <div>
+              <div class="flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${isSelectedFolder ? 'bg-indigo-50/90 dark:bg-indigo-950/50 text-indigo-900 dark:text-indigo-100 font-medium' : 'hover:bg-slate-100 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-200'}" data-folder-row="${escapeHtml(folderName)}">
+                <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                  <button type="button" class="p-0.5 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" data-toggle-folder="${escapeHtml(folderName)}">
+                    <i data-lucide="${isExpanded ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3"></i>
+                  </button>
+                  <i data-lucide="${isExpanded ? 'folder-open' : 'folder'}" class="w-3.5 h-3.5 shrink-0" style="color:${color}"></i>
+                  <span class="text-xs truncate">${escapeHtml(folderName)}</span>
+                </div>
+                <span class="text-[10px] font-mono text-slate-400 shrink-0 pl-2">${items.length}</span>
+              </div>
+              ${isExpanded ? `
+                <div class="pl-6 pr-1 py-0.5 space-y-0.5 border-l border-slate-200/70 dark:border-slate-800 ml-3.5 my-0.5">
+                  ${items.map((b) => {
+                    const active = state.selectedBookmarkId === b.id;
+                    const isLocal = b.engine === '本地引擎';
+                    return `
+                      <div class="px-2 py-1.5 rounded-md cursor-pointer transition-colors ${active ? 'bg-white dark:bg-slate-800 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'hover:bg-slate-100/80 dark:hover:bg-slate-800/40'}" data-bookmark-row="${escapeHtml(b.id)}">
+                        <div class="flex items-center justify-between gap-1.5">
+                          <span class="text-[12px] text-slate-800 dark:text-slate-100 truncate ${active ? 'font-medium' : ''}">${escapeHtml(b.title)}</span>
+                          ${isLocal ? `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" title="本地引擎归档，待精排"></span>` : ''}
+                        </div>
+                        <div class="text-[10px] font-mono text-slate-400 truncate mt-0.5">${escapeHtml(getHostname(b.url))}</div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+        lucide.createIcons();
+      }
+
+      function renderFolderView() {
+        const container = document.getElementById('folder-view-content');
+        const filtered = getFilteredBookmarks();
+
+        if (!state.selectedFolder) {
+          // Folder Grid (macOS Finder style)
+          const folderMap = new Map();
+          filtered.forEach((b) => {
+            if (!folderMap.has(b.folder)) folderMap.set(b.folder, []);
+            folderMap.get(b.folder).push(b);
+          });
+
+          let cardsHtml = '';
+          folderMap.forEach((items, fName) => {
+            const color = getFolderColor(fName);
+            cardsHtml += `
+              <div class="group p-4 rounded-2xl bg-white dark:bg-[#0f141f] border border-slate-200/70 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-600/70 shadow-sm hover:shadow transition-all cursor-pointer" data-enter-folder="${escapeHtml(fName)}">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:${color}15">
+                    <i data-lucide="folder" class="w-5 h-5" style="color:${color}"></i>
+                  </div>
+                  <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">${items.length} 项</span>
+                </div>
+                <h3 class="mt-3 text-sm font-semibold text-slate-900 dark:text-white truncate">${escapeHtml(fName)}</h3>
+                <p class="mt-1 text-[11px] text-slate-400 line-clamp-1">${escapeHtml(items[0]?.title || '')}</p>
+              </div>
+            `;
+          });
+
+          container.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div>
+                <h1 class="text-base font-semibold text-slate-900 dark:text-white">全部文件夹</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">共 ${folderMap.size} 个自动归纳目录 · ${filtered.length} 条网页收藏</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              ${cardsHtml || `<div class="col-span-full py-16 text-center text-xs text-slate-400">暂无收藏内容</div>`}
+            </div>
+          `;
+        } else {
+          // Inside a specific folder
+          const items = filtered.filter((b) => b.folder === state.selectedFolder);
+          const color = getFolderColor(state.selectedFolder);
+
+          container.innerHTML = `
+            <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <button type="button" id="btn-folder-back-root" class="hover:text-slate-900 dark:hover:text-white transition-colors">全部文件夹</button>
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+              <span class="inline-flex items-center gap-1.5 font-medium text-slate-900 dark:text-white">
+                <span class="w-2 h-2 rounded-full" style="background:${color}"></span>
+                ${escapeHtml(state.selectedFolder)}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              ${items.map((b) => `
+                <div class="p-4 rounded-2xl bg-white dark:bg-[#0f141f] border ${state.selectedBookmarkId === b.id ? 'border-indigo-400 ring-1 ring-indigo-400/30' : 'border-slate-200/70 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'} shadow-sm transition-all cursor-pointer flex flex-col justify-between gap-3" data-open-bookmark="${escapeHtml(b.id)}">
+                  <div>
+                    <div class="flex items-center justify-between gap-2 text-[11px] font-mono text-slate-400 mb-1.5">
+                      <span class="truncate">${escapeHtml(getHostname(b.url))}</span>
+                      <span class="shrink-0 ${b.engine === '本地引擎' ? 'text-amber-500' : 'text-slate-400'}">${escapeHtml(b.engine || '')}</span>
+                    </div>
+                    <h3 class="text-sm font-semibold text-slate-900 dark:text-white leading-snug line-clamp-2">${escapeHtml(b.title)}</h3>
+                    <p class="mt-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3">${escapeHtml(b.summary)}</p>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                    ${(b.tags || []).slice(0, 3).map((t) => `<span class="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"># ${escapeHtml(t)}</span>`).join('')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+        lucide.createIcons();
+      }
+
+      function openBookmarkDrawer(id) {
+        const bm = state.bookmarks.find((b) => b.id === id);
+        if (!bm) return;
+        state.selectedBookmarkId = id;
+        state.expandedGraphFolders.add(bm.folder);
+        renderSidebar();
+        if (state.viewMode === 'folder') renderFolderView();
+
+        const drawer = document.getElementById('detail-drawer');
+        const badge = document.getElementById('drawer-folder-badge');
+        const content = document.getElementById('drawer-content');
+        const color = getFolderColor(bm.folder);
+        const folders = getAllFolderNames();
+
+        badge.innerHTML = `<span class="w-2 h-2 rounded-full" style="background:${color}"></span><span>${escapeHtml(bm.folder)}</span>`;
+
+        const outboundEdges = (bm.edges || []).map((e) => {
+          const target = state.bookmarks.find((x) => x.id === e.targetId);
+          return target ? { target, relation: e.relation } : null;
+        }).filter(Boolean);
+
+        const inboundEdges = [];
+        state.bookmarks.forEach((other) => {
+          if (other.id === bm.id) return;
+          (other.edges || []).forEach((e) => {
+            if (e.targetId === bm.id) inboundEdges.push({ target: other, relation: e.relation });
+          });
+        });
+
+        const allEdges = [...outboundEdges, ...inboundEdges];
+
+        content.innerHTML = `
+          <div>
+            <h3 class="text-base font-semibold text-slate-900 dark:text-white leading-snug">${escapeHtml(bm.title)}</h3>
+            <a href="${escapeHtml(bm.url)}" target="_blank" rel="noopener noreferrer" class="mt-1.5 inline-flex items-center gap-1 text-xs font-mono text-indigo-600 dark:text-indigo-400 hover:underline break-all">
+              <span>${escapeHtml(getHostname(bm.url))}</span>
+              <i data-lucide="external-link" class="w-3 h-3 shrink-0"></i>
+            </a>
+          </div>
+
+          <!-- Manual Folder Re-assignment -->
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-2">
+            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">归属文件夹（可手动调整）</label>
+            <div class="flex gap-1.5">
+              <select id="drawer-folder-select" class="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500">
+                ${folders.map((f) => `<option value="${escapeHtml(f)}" ${f === bm.folder ? 'selected' : ''}>${escapeHtml(f)}</option>`).join('')}
+                <option value="__NEW__">+ 新建文件夹...</option>
+              </select>
+            </div>
+            <div id="drawer-new-folder-wrap" class="hidden flex gap-1.5 pt-1">
+              <input id="drawer-new-folder-input" type="text" placeholder="输入新文件夹名称" class="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs outline-none focus:border-indigo-500" />
+              <button id="btn-confirm-new-folder" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-900 dark:bg-indigo-600 text-white text-xs font-medium">确定</button>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">核心摘要 · 3句话</span>
+              <span class="text-[10px] font-mono ${bm.engine === '本地引擎' ? 'text-amber-500' : 'text-slate-400'}">${escapeHtml(bm.engine || '本地引擎')}</span>
+            </div>
+            <p class="text-xs leading-relaxed text-slate-700 dark:text-slate-200">${escapeHtml(bm.summary)}</p>
+          </div>
+
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">关联标签</div>
+            <div class="flex flex-wrap gap-1.5">
+              ${(bm.tags || []).map((t) => `<span class="px-2 py-0.5 rounded-md text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"># ${escapeHtml(t)}</span>`).join('')}
+            </div>
+          </div>
+
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">知识图谱语义连线 (${allEdges.length})</div>
+            ${allEdges.length ? `
+              <div class="space-y-1.5">
+                ${allEdges.map((edge) => `
+                  <button type="button" data-jump-bookmark="${escapeHtml(edge.target.id)}" class="w-full text-left p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-500 bg-white dark:bg-slate-900 transition-colors">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300">${escapeHtml(edge.relation)}</span>
+                      <span class="text-[10px] text-slate-400">${escapeHtml(edge.target.folder)}</span>
+                    </div>
+                    <div class="text-xs font-medium text-slate-800 dark:text-slate-100 mt-1 line-clamp-1">${escapeHtml(edge.target.title)}</div>
+                  </button>
+                `).join('')}
+              </div>
+            ` : `<p class="text-xs text-slate-400">暂无跨节点语义连线</p>`}
+          </div>
+        `;
+
+        drawer.classList.remove('hidden');
+        lucide.createIcons();
+      }
+
+      async function moveBookmarkToFolder(bmId, newFolder) {
+        const clean = (newFolder || '').trim();
+        if (!clean) return;
+        const bm = state.bookmarks.find((b) => b.id === bmId);
+        if (!bm || bm.folder === clean) return;
+        bm.folder = clean;
+        await dbPut(bm);
+        state.expandedSidebarFolders.add(clean);
+        state.expandedGraphFolders.add(clean);
+        state.selectedFolder = clean;
+        renderAll();
+        openBookmarkDrawer(bmId);
+        showToast(`已移动至「${clean}」`, 'success');
+      }
+
+      function renderAll() {
+        updateRerunBadge();
+        renderSidebar();
+        if (state.viewMode === 'folder') renderFolderView();
+        rebuildGraphData();
+      }
+
+      function setViewMode(mode) {
+        state.viewMode = mode;
+        const gSec = document.getElementById('view-graph');
+        const fSec = document.getElementById('view-folder');
+        const gBtn = document.getElementById('btn-mode-graph');
+        const fBtn = document.getElementById('btn-mode-folder');
+
+        const activeCls = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm';
+        const idleCls = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+
+        if (mode === 'graph') {
+          gSec.classList.remove('hidden');
+          fSec.classList.add('hidden');
+          gBtn.className = activeCls;
+          fBtn.className = idleCls;
+        } else {
+          gSec.classList.add('hidden');
+          fSec.classList.remove('hidden');
+          gBtn.className = idleCls;
+          fBtn.className = activeCls;
+          renderFolderView();
+        }
+      }
+
+      // =========================================================================
+      // 9. Interactive HTML5 Canvas Knowledge Graph Engine
+      // =========================================================================
+      const graph = {
+        canvas: null,
+        ctx: null,
+        nodes: [],
+        links: [],
+        cam: { x: 0, y: 0, zoom: 1 },
+        hoverNode: null,
+        dragNode: null,
+        isPanning: false,
+        panStart: { x: 0, y: 0 },
+        dragMoved: false,
+        rafId: null
+      };
+
+      function rebuildGraphData() {
+        const oldPos = new Map(graph.nodes.map((n) => [n.id, { x: n.x, y: n.y }]));
+        const nodes = [];
+        const links = [];
+
+        const folderGroups = new Map();
+        state.bookmarks.forEach((b) => {
+          if (!folderGroups.has(b.folder)) folderGroups.set(b.folder, []);
+          folderGroups.get(b.folder).push(b);
+        });
+
+        const folderNames = Array.from(folderGroups.keys());
+        const fCount = Math.max(1, folderNames.length);
+        const radius = Math.min(240, 120 + fCount * 22);
+
+        folderNames.forEach((fName, idx) => {
+          const fId = 'folder:' + fName;
+          const angle = (idx / fCount) * Math.PI * 2 - Math.PI / 2;
+          const saved = oldPos.get(fId);
+          const fx = saved ? saved.x : Math.cos(angle) * radius;
+          const fy = saved ? saved.y : Math.sin(angle) * radius;
+          const items = folderGroups.get(fName);
+          const isExpanded = state.expandedGraphFolders.has(fName);
+
+          nodes.push({
+            id: fId,
+            type: 'folder',
+            label: fName,
+            count: items.length,
+            expanded: isExpanded,
+            color: getFolderColor(fName),
+            x: fx,
+            y: fy,
+            vx: 0,
+            vy: 0,
+            r: 26
+          });
+
+          if (isExpanded) {
+            const subCount = items.length;
+            items.forEach((bm, bIdx) => {
+              const bAngle = angle + ((bIdx - (subCount - 1) / 2) * 0.55);
+              const subDist = 112 + (bIdx % 2) * 24;
+              const bSaved = oldPos.get(bm.id);
+              nodes.push({
+                id: bm.id,
+                type: 'bookmark',
+                folder: fName,
+                label: bm.title,
+                color: getFolderColor(fName),
+                x: bSaved ? bSaved.x : fx + Math.cos(bAngle) * subDist,
+                y: bSaved ? bSaved.y : fy + Math.sin(bAngle) * subDist,
+                vx: 0,
+                vy: 0,
+                r: 12
+              });
+              links.push({
+                source: fId,
+                target: bm.id,
+                kind: 'membership',
+                color: getFolderColor(fName)
+              });
+            });
+          }
+        });
+
+        const visibleBookmarkIds = new Set(nodes.filter((n) => n.type === 'bookmark').map((n) => n.id));
+        const folderEdgeSet = new Set();
+
+        state.bookmarks.forEach((bm) => {
+          (bm.edges || []).forEach((edge) => {
+            const targetBm = state.bookmarks.find((x) => x.id === edge.targetId);
+            if (!targetBm) return;
+            const srcVis = visibleBookmarkIds.has(bm.id);
+            const tgtVis = visibleBookmarkIds.has(targetBm.id);
+
+            if (srcVis && tgtVis) {
+              links.push({
+                source: bm.id,
+                target: targetBm.id,
+                kind: 'semantic',
+                relation: edge.relation,
+                crossFolder: bm.folder !== targetBm.folder
+              });
+            } else {
+              const sNodeId = srcVis ? bm.id : 'folder:' + bm.folder;
+              const tNodeId = tgtVis ? targetBm.id : 'folder:' + targetBm.folder;
+              if (sNodeId !== tNodeId) {
+                const key = [sNodeId, tNodeId].sort().join('->');
+                if (!folderEdgeSet.has(key)) {
+                  folderEdgeSet.add(key);
+                  links.push({
+                    source: sNodeId,
+                    target: tNodeId,
+                    kind: 'semantic',
+                    relation: edge.relation,
+                    crossFolder: true
+                  });
+                }
+              }
+            }
+          });
+        });
+
+        graph.nodes = nodes;
+        graph.links = links;
+        updateFocusLabel();
+      }
+
+      function updateFocusLabel() {
+        const el = document.getElementById('graph-focus-label');
+        if (!el) return;
+        el.textContent = state.selectedFolder
+          ? `文件夹：${state.selectedFolder}`
+          : `全局知识图谱 · ${state.expandedGraphFolders.size} 个已展开分支`;
+      }
+
+      function stepPhysics() {
+        const nodes = graph.nodes;
+        const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const a = nodes[i];
+            const b = nodes[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const distSq = dx * dx + dy * dy + 0.01;
+            const minSep = (a.type === 'folder' && b.type === 'folder') ? 215 : 92;
+            if (distSq < minSep * minSep) {
+              const dist = Math.sqrt(distSq);
+              const force = ((minSep - dist) / minSep) * 0.65;
+              const fx = (dx / dist) * force;
+              const fy = (dy / dist) * force;
+              if (graph.dragNode !== a) { a.vx -= fx; a.vy -= fy; }
+              if (graph.dragNode !== b) { b.vx += fx; b.vy += fy; }
+            }
+          }
+        }
+
+        graph.links.forEach((l) => {
+          const s = nodeMap.get(l.source);
+          const t = nodeMap.get(l.target);
+          if (!s || !t) return;
+          if (l.kind === 'membership') {
+            const dx = t.x - s.x;
+            const dy = t.y - s.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            const targetDist = 112;
+            const pull = (dist - targetDist) * 0.025;
+            if (graph.dragNode !== t) {
+              t.vx -= (dx / dist) * pull;
+              t.vy -= (dy / dist) * pull;
+            }
+          }
+        });
+
+        nodes.forEach((n) => {
+          if (graph.dragNode === n) return;
+          n.vx += -n.x * 0.0025;
+          n.vy += -n.y * 0.0025;
+          n.vx *= 0.82;
+          n.vy *= 0.82;
+          n.x += n.vx;
+          n.y += n.vy;
+        });
+      }
+
+      function drawGraph() {
+        const canvas = graph.canvas;
+        const ctx = graph.ctx;
+        if (!canvas || !ctx) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
+            canvas.width = Math.round(rect.width * dpr);
+            canvas.height = Math.round(rect.height * dpr);
+          }
+
+          stepPhysics();
+
+          const isDark = document.documentElement.classList.contains('dark');
+          ctx.save();
+          ctx.scale(dpr, dpr);
+          ctx.clearRect(0, 0, rect.width, rect.height);
+
+          ctx.translate(rect.width / 2 + graph.cam.x, rect.height / 2 + graph.cam.y);
+          ctx.scale(graph.cam.zoom, graph.cam.zoom);
+
+          const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
+
+          graph.links.forEach((l) => {
+            const s = nodeMap.get(l.source);
+            const t = nodeMap.get(l.target);
+            if (!s || !t) return;
+
+            ctx.beginPath();
+            if (l.kind === 'membership') {
+              ctx.setLineDash([]);
+              ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.25)' : 'rgba(100,116,139,0.24)';
+              ctx.lineWidth = 1.3;
+              ctx.moveTo(s.x, s.y);
+              ctx.lineTo(t.x, t.y);
+            } else {
+              ctx.setLineDash([5, 4]);
+              const highlighted =
+                state.selectedBookmarkId &&
+                (s.id === state.selectedBookmarkId || t.id === state.selectedBookmarkId);
+              ctx.strokeStyle = highlighted
+                ? '#f59e0b'
+                : (isDark ? 'rgba(245,158,11,0.42)' : 'rgba(217,119,6,0.38)');
+              ctx.lineWidth = highlighted ? 2.1 : 1.25;
+              const mx = (s.x + t.x) / 2;
+              const my = (s.y + t.y) / 2;
+              const dx = t.x - s.x;
+              const dy = t.y - s.y;
+              ctx.moveTo(s.x, s.y);
+              ctx.quadraticCurveTo(mx - dy * 0.14, my + dx * 0.14, t.x, t.y);
+            }
+            ctx.stroke();
+          });
+          ctx.setLineDash([]);
+
+          graph.nodes.forEach((n) => {
+            const isHover = graph.hoverNode && graph.hoverNode.id === n.id;
+            const isSelectedBm = n.type === 'bookmark' && state.selectedBookmarkId === n.id;
+            const isSelectedFolder = n.type === 'folder' && state.selectedFolder === n.label;
+            const dimmed =
+              state.selectedFolder &&
+              ((n.type === 'folder' && n.label !== state.selectedFolder) ||
+               (n.type === 'bookmark' && n.folder !== state.selectedFolder));
+
+            ctx.save();
+            if (dimmed) ctx.globalAlpha = 0.28;
+
+            if (n.type === 'folder') {
+              ctx.beginPath();
+              ctx.arc(n.x, n.y, n.r + (isHover || isSelectedFolder ? 5 : 2.5), 0, Math.PI * 2);
+              ctx.fillStyle = n.color + '1c';
+              ctx.fill();
+
+              ctx.beginPath();
+              ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+              ctx.fillStyle = isDark ? '#0f141f' : '#ffffff';
+              ctx.fill();
+              ctx.lineWidth = isSelectedFolder || isHover ? 2.8 : 2;
+              ctx.strokeStyle = n.color;
+              ctx.stroke();
+
+              ctx.fillStyle = n.color;
+              ctx.font = '600 12px "JetBrains Mono", monospace';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(String(n.count), n.x, n.y);
+
+              ctx.font = '600 11.5px "Inter", "Noto Sans SC", sans-serif';
+              const labelW = ctx.measureText(n.label).width + 16;
+              const py = n.y + n.r + 13;
+              ctx.fillStyle = isDark ? 'rgba(15,20,31,0.9)' : 'rgba(255,255,255,0.94)';
+              ctx.strokeStyle = isDark ? 'rgba(51,65,85,0.7)' : 'rgba(226,232,240,0.9)';
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.roundRect(n.x - labelW / 2, py - 9.5, labelW, 19, 6);
+              ctx.fill();
+              ctx.stroke();
+
+              ctx.fillStyle = isDark ? '#f1f5f9' : '#0f172a';
+              ctx.fillText(n.label, n.x, py + 0.5);
+            } else {
+              if (isSelectedBm || isHover) {
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, n.r + 4.5, 0, Math.PI * 2);
+                ctx.fillStyle = n.color + '2e';
+                ctx.fill();
+              }
+              ctx.beginPath();
+              ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+              ctx.fillStyle = isSelectedBm ? n.color : (isDark ? '#1e293b' : '#ffffff');
+              ctx.fill();
+              ctx.lineWidth = 1.8;
+              ctx.strokeStyle = n.color;
+              ctx.stroke();
+
+              const shortTitle = n.label.length > 15 ? n.label.slice(0, 14) + '…' : n.label;
+              ctx.font = '500 10.5px "Inter", "Noto Sans SC", sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'top';
+              ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
+              ctx.fillText(shortTitle, n.x, n.y + n.r + 5);
+            }
+            ctx.restore();
+          });
+
+          ctx.restore();
+        }
+        graph.rafId = requestAnimationFrame(drawGraph);
+      }
+
+      function screenToWorld(clientX, clientY) {
+        const rect = graph.canvas.getBoundingClientRect();
+        return {
+          x: (clientX - rect.left - rect.width / 2 - graph.cam.x) / graph.cam.zoom,
+          y: (clientY - rect.top - rect.height / 2 - graph.cam.y) / graph.cam.zoom
+        };
+      }
+
+      function findNodeAt(wx, wy) {
+        for (let i = graph.nodes.length - 1; i >= 0; i--) {
+          const n = graph.nodes[i];
+          const dx = wx - n.x;
+          const dy = wy - n.y;
+          if (dx * dx + dy * dy <= (n.r + 6) * (n.r + 6)) return n;
+        }
+        return null;
+      }
+
+      function initGraphCanvas() {
+        graph.canvas = document.getElementById('graph-canvas');
+        graph.ctx = graph.canvas.getContext('2d');
+        const tooltip = document.getElementById('graph-tooltip');
+
+        graph.canvas.addEventListener('pointerdown', (e) => {
+          const w = screenToWorld(e.clientX, e.clientY);
+          const hit = findNodeAt(w.x, w.y);
+          graph.dragMoved = false;
+          if (hit) graph.dragNode = hit;
+          else {
+            graph.isPanning = true;
+            graph.panStart = { x: e.clientX - graph.cam.x, y: e.clientY - graph.cam.y };
+          }
+        });
+
+        window.addEventListener('pointermove', (e) => {
+          if (graph.dragNode) {
+            const w = screenToWorld(e.clientX, e.clientY);
+            graph.dragNode.x = w.x;
+            graph.dragNode.y = w.y;
+            graph.dragNode.vx = 0;
+            graph.dragNode.vy = 0;
+            graph.dragMoved = true;
+            return;
+          }
+          if (graph.isPanning) {
+            graph.cam.x = e.clientX - graph.panStart.x;
+            graph.cam.y = e.clientY - graph.panStart.y;
+            graph.dragMoved = true;
+            return;
+          }
+          if (state.viewMode !== 'graph') {
+            tooltip.classList.add('hidden');
+            return;
+          }
+          const rect = graph.canvas.getBoundingClientRect();
+          if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+            const w = screenToWorld(e.clientX, e.clientY);
+            const hit = findNodeAt(w.x, w.y);
+            graph.hoverNode = hit;
+            graph.canvas.style.cursor = hit ? 'pointer' : 'grab';
+            if (hit) {
+              tooltip.classList.remove('hidden');
+              tooltip.style.left = Math.min(window.innerWidth - 260, e.clientX + 14) + 'px';
+              tooltip.style.top = Math.min(window.innerHeight - 90, e.clientY + 14) + 'px';
+              if (hit.type === 'folder') {
+                tooltip.innerHTML = `<div class="font-semibold">${escapeHtml(hit.label)}</div><div class="text-slate-300 mt-0.5">${hit.count} 条收藏 · 点击${hit.expanded ? '收起' : '展开'}</div>`;
+              } else {
+                const bm = state.bookmarks.find((b) => b.id === hit.id);
+                tooltip.innerHTML = `<div class="font-semibold">${escapeHtml(hit.label)}</div><div class="text-slate-300 mt-0.5">${escapeHtml(bm ? getHostname(bm.url) : '')} · 点击查看详情</div>`;
+              }
+            } else {
+              tooltip.classList.add('hidden');
+            }
+          } else {
+            tooltip.classList.add('hidden');
+          }
+        });
+
+        window.addEventListener('pointerup', () => {
+          if (graph.dragNode && !graph.dragMoved) {
+            const node = graph.dragNode;
+            if (node.type === 'folder') {
+              if (state.expandedGraphFolders.has(node.label)) state.expandedGraphFolders.delete(node.label);
+              else {
+                state.expandedGraphFolders.add(node.label);
+                state.expandedSidebarFolders.add(node.label);
+              }
+              state.selectedFolder = node.label;
+              renderSidebar();
+              rebuildGraphData();
+            } else if (node.type === 'bookmark') {
+              openBookmarkDrawer(node.id);
+            }
+          }
+          graph.dragNode = null;
+          graph.isPanning = false;
+        });
+
+        graph.canvas.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          const factor = e.deltaY < 0 ? 1.1 : 0.9;
+          graph.cam.zoom = Math.max(0.4, Math.min(2.4, graph.cam.zoom * factor));
+        }, { passive: false });
+
+        if (graph.rafId) cancelAnimationFrame(graph.rafId);
+        graph.rafId = requestAnimationFrame(drawGraph);
+      }
+
+      // =========================================================================
+      // 10. UI Event Wiring & Modals
+      // =========================================================================
+      function syncSettingsUI() {
+        const s = state.settings;
+        document.getElementById('setting-endpoint').value = s.endpoint || '';
+        document.getElementById('setting-model').value = s.model || '';
+        document.getElementById('setting-apikey').value = s.apiKey || '';
+
+        document.querySelectorAll('.provider-btn').forEach((btn) => {
+          const active = btn.dataset.provider === s.provider;
+          btn.className = `provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors ${
+            active
+              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300'
+              : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+          }`;
+        });
+
+        const hasKey = Boolean(s.apiKey && s.apiKey.trim()) || s.provider === 'ollama';
+        document.getElementById('llm-status-dot').className = `w-1.5 h-1.5 rounded-full ${hasKey ? 'bg-emerald-500' : 'bg-amber-400'}`;
+        document.getElementById('clip-engine-hint').textContent = hasKey
+          ? `当前引擎：BYOK 直连 (${s.model})`
+          : '当前引擎：本地 TF-IDF 语义引擎';
+      }
+
+      function toggleModal(id, show) {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', !show);
+      }
+
+      function initTheme() {
+        let isDark = false;
+        try { isDark = localStorage.getItem(THEME_KEY) === 'dark'; } catch (_) {}
+        document.documentElement.classList.toggle('dark', isDark);
+      }
+
+      function bindEvents() {
+        document.getElementById('btn-toggle-theme').addEventListener('click', () => {
+          const isDark = document.documentElement.classList.toggle('dark');
+          try { localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light'); } catch (_) {}
+        });
+
+        document.getElementById('btn-mode-graph').addEventListener('click', () => setViewMode('graph'));
+        document.getElementById('btn-mode-folder').addEventListener('click', () => setViewMode('folder'));
+        document.getElementById('btn-rerun-local').addEventListener('click', rerunLocalBookmarks);
+
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        const setSidebarOpen = (open) => {
+          sidebar.classList.toggle('-translate-x-full', !open);
+          backdrop.classList.toggle('hidden', !open);
+        };
+        document.getElementById('btn-toggle-sidebar').addEventListener('click', () => {
+          setSidebarOpen(sidebar.classList.contains('-translate-x-full'));
+        });
+        backdrop.addEventListener('click', () => setSidebarOpen(false));
+
+        const searchInput = document.getElementById('search-input');
+        const clearSearchBtn = document.getElementById('btn-clear-search');
+        searchInput.addEventListener('input', () => {
+          state.searchQuery = searchInput.value;
+          clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
+          renderSidebar();
+          if (state.viewMode === 'folder') renderFolderView();
+        });
+        clearSearchBtn.addEventListener('click', () => {
+          searchInput.value = '';
+          state.searchQuery = '';
+          clearSearchBtn.classList.add('hidden');
+          renderSidebar();
+          if (state.viewMode === 'folder') renderFolderView();
+        });
+
+        // Sidebar Delegation
+        document.getElementById('folder-tree-container').addEventListener('click', (e) => {
+          if (e.target.closest('[data-select-all]')) {
+            state.selectedFolder = null;
+            renderAll();
+            return;
+          }
+          const toggleBtn = e.target.closest('[data-toggle-folder]');
+          if (toggleBtn) {
+            e.stopPropagation();
+            const fName = toggleBtn.dataset.toggleFolder;
+            if (state.expandedSidebarFolders.has(fName)) state.expandedSidebarFolders.delete(fName);
+            else state.expandedSidebarFolders.add(fName);
+            renderSidebar();
+            return;
+          }
+          const folderRow = e.target.closest('[data-folder-row]');
+          if (folderRow) {
+            const fName = folderRow.dataset.folderRow;
+            state.selectedFolder = state.selectedFolder === fName && state.viewMode === 'graph' ? null : fName;
+            state.expandedSidebarFolders.add(fName);
+            state.expandedGraphFolders.add(fName);
+            renderAll();
+            return;
+          }
+          const bmRow = e.target.closest('[data-bookmark-row]');
+          if (bmRow) {
+            openBookmarkDrawer(bmRow.dataset.bookmarkRow);
+            if (window.innerWidth < 1024) setSidebarOpen(false);
+          }
+        });
+
+        // Folder Grid View Delegation
+        document.getElementById('folder-view-content').addEventListener('click', (e) => {
+          const enterFolder = e.target.closest('[data-enter-folder]');
+          if (enterFolder) {
+            const fName = enterFolder.dataset.enterFolder;
+            state.selectedFolder = fName;
+            state.expandedSidebarFolders.add(fName);
+            renderAll();
+            return;
+          }
+          if (e.target.closest('#btn-folder-back-root')) {
+            state.selectedFolder = null;
+            renderAll();
+            return;
+          }
+          const openBm = e.target.closest('[data-open-bookmark]');
+          if (openBm) {
+            openBookmarkDrawer(openBm.dataset.openBookmark);
+          }
+        });
+
+        // Drawer Controls & Manual Folder Change
+        document.getElementById('btn-close-drawer').addEventListener('click', () => {
+          document.getElementById('detail-drawer').classList.add('hidden');
+          state.selectedBookmarkId = null;
+          renderSidebar();
+          if (state.viewMode === 'folder') renderFolderView();
+        });
+
+        document.getElementById('drawer-content').addEventListener('change', (e) => {
+          if (e.target.id === 'drawer-folder-select' && state.selectedBookmarkId) {
+            const val = e.target.value;
+            if (val === '__NEW__') {
+              document.getElementById('drawer-new-folder-wrap').classList.remove('hidden');
+              document.getElementById('drawer-new-folder-input').focus();
+            } else {
+              moveBookmarkToFolder(state.selectedBookmarkId, val);
+            }
+          }
+        });
+
+        document.getElementById('drawer-content').addEventListener('click', (e) => {
+          if (e.target.closest('#btn-confirm-new-folder') && state.selectedBookmarkId) {
+            const val = document.getElementById('drawer-new-folder-input').value;
+            moveBookmarkToFolder(state.selectedBookmarkId, val);
+            return;
+          }
+          const jumpBtn = e.target.closest('[data-jump-bookmark]');
+          if (jumpBtn) openBookmarkDrawer(jumpBtn.dataset.jumpBookmark);
+        });
+
+        document.getElementById('btn-delete-bookmark').addEventListener('click', async () => {
+          if (!state.selectedBookmarkId) return;
+          const id = state.selectedBookmarkId;
+          await dbDelete(id);
+          state.bookmarks = state.bookmarks.filter((b) => b.id !== id);
+          state.selectedBookmarkId = null;
+          document.getElementById('detail-drawer').classList.add('hidden');
+          renderAll();
+          showToast('已删除该条收藏', 'info');
+        });
+
+        // Graph Controls
+        document.getElementById('btn-expand-all').addEventListener('click', () => {
+          state.bookmarks.forEach((b) => state.expandedGraphFolders.add(b.folder));
+          rebuildGraphData();
+        });
+        document.getElementById('btn-collapse-all').addEventListener('click', () => {
+          state.expandedGraphFolders.clear();
+          rebuildGraphData();
+        });
+        document.getElementById('btn-zoom-in').addEventListener('click', () => {
+          graph.cam.zoom = Math.min(2.4, graph.cam.zoom * 1.2);
+        });
+        document.getElementById('btn-zoom-out').addEventListener('click', () => {
+          graph.cam.zoom = Math.max(0.4, graph.cam.zoom * 0.85);
+        });
+        document.getElementById('btn-fit-graph').addEventListener('click', () => {
+          graph.cam = { x: 0, y: 0, zoom: 1 };
+        });
+
+        // Modals
+        document.getElementById('btn-simulate-clip').addEventListener('click', () => {
+          syncSettingsUI();
+          toggleModal('modal-clip', true);
+        });
+        document.getElementById('btn-bookmarklet-guide').addEventListener('click', () => {
+          refreshBookmarkletLinks();
+          toggleModal('modal-bookmarklet', true);
+        });
+        document.getElementById('btn-open-settings').addEventListener('click', () => {
+          syncSettingsUI();
+          toggleModal('modal-settings', true);
+        });
+        document.querySelectorAll('[data-close-modal]').forEach((btn) => {
+          btn.addEventListener('click', () => toggleModal(btn.dataset.closeModal, false));
+        });
+
+        document.getElementById('btn-fill-sample-clip').addEventListener('click', () => {
+          document.getElementById('clip-title').value = 'WebGPU 与浏览器端本地推理加速架构演进';
+          document.getElementById('clip-url').value = 'https://web.dev/articles/webgpu-ai-inference';
+          document.getElementById('clip-content').value = 'WebGPU 为浏览器提供了接近原生的 GPU 计算管线访问能力，使得轻量级大语言模型与嵌入向量模型可以直接在客户端执行。结合 IndexedDB 的权重缓存，PWA 应用无需依赖云端 GPU 服务器即可完成语义索引与摘要生成。这种架构天然契合 Local-First 理念与零服务器成本的个人知识库工具。';
+        });
+
+        document.getElementById('form-clip').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const title = document.getElementById('clip-title').value.trim();
+          const url = document.getElementById('clip-url').value.trim();
+          const content = document.getElementById('clip-content').value.trim();
+          if (!title || !url) return;
+          toggleModal('modal-clip', false);
+          document.getElementById('form-clip').reset();
+          await processAndSaveClip({ title, url, content });
+        });
+
+        document.getElementById('bookmarklet-target-url').addEventListener('input', refreshBookmarkletLinks);
+        document.getElementById('btn-copy-bookmarklet').addEventListener('click', () => {
+          const code = document.getElementById('bookmarklet-code-preview').textContent;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).then(() => showToast('已复制书签脚本代码', 'success')).catch(() => fallbackCopy(code));
+          } else fallbackCopy(code);
+        });
+
+        function fallbackCopy(text) {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand('copy');
+            showToast('已复制书签脚本代码', 'success');
+          } catch (_) {
+            showToast('请手动全选脚本框复制', 'warning');
+          }
+          ta.remove();
+        }
+
+        document.getElementById('provider-presets').addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-provider]');
+          if (!btn) return;
+          const p = btn.dataset.provider;
+          state.settings.provider = p;
+          state.settings.endpoint = LLM_PRESETS[p].endpoint;
+          state.settings.model = LLM_PRESETS[p].model;
+          syncSettingsUI();
+        });
+
+        document.getElementById('btn-save-settings').addEventListener('click', () => {
+          state.settings.endpoint = document.getElementById('setting-endpoint').value.trim();
+          state.settings.model = document.getElementById('setting-model').value.trim();
+          state.settings.apiKey = document.getElementById('setting-apikey').value.trim();
+          saveSettings(state.settings);
+          syncSettingsUI();
+          toggleModal('modal-settings', false);
+          showToast('模型配置已保存至 localStorage', 'success');
+        });
+
+        document.getElementById('btn-export-json').addEventListener('click', () => {
+          const blob = new Blob([JSON.stringify(state.bookmarks, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `nexusclip-backup-${new Date().toISOString().slice(0, 10)}.json`;
+          a.click();
+          showToast('已导出 JSON 备份文件', 'success');
+        });
+
+        document.getElementById('input-import-json').addEventListener('change', async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          try {
+            const text = await file.text();
+            const items = JSON.parse(text);
+            if (!Array.isArray(items)) throw new Error('格式无效');
+            await dbClearAndSeed(items);
+            state.bookmarks = items;
+            state.selectedFolder = null;
+            state.selectedBookmarkId = null;
+            renderAll();
+            toggleModal('modal-settings', false);
+            showToast(`成功导入 ${items.length} 条收藏`, 'success');
+          } catch (err) {
+            showToast(`导入失败：${err.message}`, 'error');
+          }
+          e.target.value = '';
+        });
+
+        document.getElementById('btn-reset-demo').addEventListener('click', async () => {
+          await dbClearAndSeed(DEMO_BOOKMARKS);
+          state.bookmarks = [...DEMO_BOOKMARKS];
+          state.selectedFolder = null;
+          state.selectedBookmarkId = null;
+          state.expandedGraphFolders = new Set(['AI 架构与 Agent', '前端工程与设计']);
+          document.getElementById('detail-drawer').classList.add('hidden');
+          renderAll();
+          toggleModal('modal-settings', false);
+          showToast('已重置为演示知识图谱', 'info');
+        });
+
+        window.addEventListener('message', (e) => {
+          if (e.data && e.data.type === 'NEXUS_CLIP') handleIncomingClipPayload(e.data);
+        });
+      }
+
+      // =========================================================================
+      // 11. Bootstrap
+      // =========================================================================
+      async function bootstrap() {
+        initTheme();
+        initPWA();
+        bindEvents();
+        refreshBookmarkletLinks();
+        syncSettingsUI();
+
+        let existing = await dbGetAll();
+        if (!existing || existing.length === 0) {
+          await dbClearAndSeed(DEMO_BOOKMARKS);
+          existing = [...DEMO_BOOKMARKS];
+        }
+        state.bookmarks = existing.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        state.expandedSidebarFolders = new Set(state.bookmarks.map((b) => b.folder));
+
+        initGraphCanvas();
+        renderAll();
+        checkHashForClip();
+        lucide.createIcons();
+      }
+
+      window.addEventListener('DOMContentLoaded', bootstrap);
+    })();
+  </script>
+</body>
+</html>
