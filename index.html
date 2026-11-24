@@ -392,9 +392,16 @@
               <input id="setting-apikey" type="password" placeholder="sk-..." class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-mono text-[11px] text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
             </div>
           </div>
-          <div class="flex items-center justify-between pt-1">
-            <span class="text-[11px] text-slate-500 dark:text-slate-400">失效时自动降级为本地 TF-IDF 语义引擎</span>
-            <button id="btn-save-settings" class="px-4 py-1.5 rounded-lg bg-slate-900 dark:bg-indigo-600 hover:opacity-90 text-white font-medium">保存配置</button>
+          <div id="llm-test-result" class="hidden p-2.5 rounded-xl border text-[11px] font-mono leading-relaxed break-all"></div>
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">失效时自动降级为本地 TF-IDF 引擎</span>
+            <div class="flex items-center gap-2">
+              <button type="button" id="btn-test-llm" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium transition-colors">
+                <i data-lucide="activity" class="w-3.5 h-3.5 text-indigo-500"></i>
+                <span>测试连接</span>
+              </button>
+              <button type="button" id="btn-save-settings" class="px-4 py-1.5 rounded-lg bg-slate-900 dark:bg-indigo-600 hover:opacity-90 text-white font-medium">保存配置</button>
+            </div>
           </div>
         </div>
 
@@ -1004,6 +1011,103 @@
         };
       }
 
+      function normalizeEndpoint(rawUrl) {
+        let u = String(rawUrl || '').trim().replace(/\/+$/, '');
+        if (!u) return '';
+        if (u.endsWith('/chat/completions') || u.includes(':generateContent')) return u;
+        if (u.endsWith('/v1') || u.endsWith('/openai')) return u + '/chat/completions';
+        if (u.includes('11434') && !u.includes('/v1')) return u + '/v1/chat/completions';
+        if (u.includes('api.deepseek.com') && !u.includes('/chat/completions')) return u + '/chat/completions';
+        return u + '/v1/chat/completions';
+      }
+
+      async function callLLMChat({ endpoint, model, apiKey, messages, maxTokens = 800, timeoutMs = 25000 }) {
+        const url = normalizeEndpoint(endpoint);
+        if (!url) throw new Error('Endpoint 不能为空');
+
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (apiKey && apiKey.trim()) {
+            headers['Authorization'] = `Bearer ${apiKey.trim()}`;
+          }
+          const res = await fetch(url, {
+            method: 'POST',
+            headers,
+            signal: ctrl.signal,
+            body: JSON.stringify({
+              model: (model || 'gpt-4o-mini').trim(),
+              temperature: 0.2,
+              max_tokens: maxTokens,
+              messages
+            })
+          });
+
+          const text = await res.text();
+          let data = null;
+          try { data = JSON.parse(text); } catch (_) {}
+
+          if (!res.ok) {
+            const detail = data?.error?.message || data?.message || text.slice(0, 160) || res.statusText;
+            throw new Error(`HTTP ${res.status}: ${detail}`);
+          }
+          const content = data?.choices?.[0]?.message?.content;
+          if (!content) throw new Error('模型返回内容为空（请检查模型名称或响应格式）');
+          return { content, normalizedUrl: url };
+        } catch (err) {
+          if (err.name === 'AbortError') throw new Error(`请求超时 (${Math.round(timeoutMs / 1000)}s)`);
+          if (err.message === 'Failed to fetch') {
+            throw new Error('网络或 CORS 跨域拦截（若为本地 Ollama 请设置 OLLAMA_ORIGINS=*；若在预览沙箱中可能受限于网络策略）');
+          }
+          throw err;
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      async function testLLMConnection() {
+        const endpoint = document.getElementById('setting-endpoint').value.trim();
+        const model = document.getElementById('setting-model').value.trim();
+        const apiKey = document.getElementById('setting-apikey').value.trim();
+        const box = document.getElementById('llm-test-result');
+        const btn = document.getElementById('btn-test-llm');
+
+        box.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-800', 'dark:bg-emerald-950/40', 'dark:border-emerald-800', 'dark:text-emerald-300', 'bg-rose-50', 'border-rose-200', 'text-rose-800', 'dark:bg-rose-950/40', 'dark:border-rose-800', 'dark:text-rose-300');
+        box.classList.add('bg-slate-50', 'border-slate-200', 'text-slate-600', 'dark:bg-slate-900', 'dark:border-slate-700', 'dark:text-slate-300');
+        box.textContent = `正在测试连接 ${normalizeEndpoint(endpoint)} ...`;
+        btn.disabled = true;
+
+        const t0 = performance.now();
+        try {
+          const { content, normalizedUrl } = await callLLMChat({
+            endpoint,
+            model,
+            apiKey,
+            maxTokens: 24,
+            timeoutMs: 12000,
+            messages: [{ role: 'user', content: 'Reply with OK only.' }]
+          });
+          const ms = Math.round(performance.now() - t0);
+          box.classList.remove('bg-slate-50', 'border-slate-200', 'text-slate-600', 'dark:bg-slate-900', 'dark:border-slate-700', 'dark:text-slate-300');
+          box.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-800', 'dark:bg-emerald-950/40', 'dark:border-emerald-800', 'dark:text-emerald-300');
+          box.textContent = `✓ 连接成功 (${ms}ms) · ${normalizedUrl} · 回复: ${content.trim().slice(0, 40)}`;
+          // Auto-save working settings
+          state.settings.endpoint = normalizedUrl;
+          state.settings.model = model;
+          state.settings.apiKey = apiKey;
+          saveSettings(state.settings);
+          syncSettingsUI();
+        } catch (err) {
+          const ms = Math.round(performance.now() - t0);
+          box.classList.remove('bg-slate-50', 'border-slate-200', 'text-slate-600', 'dark:bg-slate-900', 'dark:border-slate-700', 'dark:text-slate-300');
+          box.classList.add('bg-rose-50', 'border-rose-200', 'text-rose-800', 'dark:bg-rose-950/40', 'dark:border-rose-800', 'dark:text-rose-300');
+          box.textContent = `✕ 连接失败 (${ms}ms)：${err.message}`;
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
       async function analyzeWithLLM(title, url, content, excludeId = null) {
         const { endpoint, model, apiKey, provider } = state.settings;
         const hasKey = Boolean(apiKey && apiKey.trim());
@@ -1032,27 +1136,20 @@
 已有书签列表：${JSON.stringify(existingContext)}`;
 
         try {
-          const headers = { 'Content-Type': 'application/json' };
-          if (hasKey) headers['Authorization'] = `Bearer ${apiKey.trim()}`;
-
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              model: model || 'gpt-4o-mini',
-              temperature: 0.2,
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: `标题：${title}\nURL：${url}\n正文：${(content || '').slice(0, 3200)}` }
-              ]
-            })
+          const { content: rawText } = await callLLMChat({
+            endpoint,
+            model,
+            apiKey,
+            maxTokens: 900,
+            timeoutMs: 25000,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `标题：${title}\nURL：${url}\n正文：${(content || '').slice(0, 3200)}` }
+            ]
           });
 
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          const rawText = data?.choices?.[0]?.message?.content || '';
           const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-          if (!jsonMatch) throw new Error('JSON 解析失败');
+          if (!jsonMatch) throw new Error('模型未返回有效 JSON');
           const parsed = JSON.parse(jsonMatch[0]);
 
           const validIds = new Set(state.bookmarks.map((b) => b.id));
@@ -1069,7 +1166,7 @@
             engine: `LLM · ${model}`
           };
         } catch (err) {
-          showToast(`LLM 请求失败 (${err.message})，已自动降级为本地引擎`, 'warning');
+          showToast(`LLM 请求失败 (${err.message})，已降级为本地引擎`, 'warning');
           return localFallbackAnalyze(title, url, content, excludeId);
         }
       }
@@ -2508,14 +2605,17 @@
           const btn = e.target.closest('[data-provider]');
           if (!btn) return;
           const p = btn.dataset.provider;
+          state.settings.apiKey = document.getElementById('setting-apikey').value.trim();
           state.settings.provider = p;
           state.settings.endpoint = LLM_PRESETS[p].endpoint;
           state.settings.model = LLM_PRESETS[p].model;
           syncSettingsUI();
         });
 
+        document.getElementById('btn-test-llm').addEventListener('click', testLLMConnection);
+
         document.getElementById('btn-save-settings').addEventListener('click', () => {
-          state.settings.endpoint = document.getElementById('setting-endpoint').value.trim();
+          state.settings.endpoint = normalizeEndpoint(document.getElementById('setting-endpoint').value.trim());
           state.settings.model = document.getElementById('setting-model').value.trim();
           state.settings.apiKey = document.getElementById('setting-apikey').value.trim();
           saveSettings(state.settings);
