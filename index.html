@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NexusClip · 机构级书签研究工作台</title>
-  <meta name="theme-color" content="#0f172a" />
-  <meta name="description" content="轻量级本地优先网页收藏与智能归档工作台" />
+  <title>INLIST · 智能收藏工作台</title>
+  <meta name="theme-color" content="#08090c" />
+  <meta name="description" content="INLIST 本地优先轻量级智能书签与文件夹管理工作台" />
   <link id="pwa-manifest" rel="manifest" href="" />
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -26,6 +26,19 @@
     body {
       font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
       overscroll-behavior: none;
+      letter-spacing: -0.012em;
+    }
+    .linear-top-glow {
+      background-image: radial-gradient(ellipse 75% 45% at 50% -12%, rgba(94, 106, 210, 0.16), transparent 70%);
+    }
+    html:not(.dark) .linear-top-glow {
+      background-image: radial-gradient(ellipse 75% 45% at 50% -12%, rgba(94, 106, 210, 0.08), transparent 70%);
+    }
+    .linear-surface {
+      box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+    }
+    html:not(.dark) .linear-surface {
+      box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.8), 0 1px 2px rgba(15, 23, 42, 0.04);
     }
     ::-webkit-scrollbar {
       width: 5px;
@@ -35,11 +48,11 @@
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(148, 163, 184, 0.32);
+      background: rgba(148, 163, 184, 0.22);
       border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(148, 163, 184, 0.55);
+      background: rgba(148, 163, 184, 0.42);
     }
     .bookmarklet-pill {
       cursor: grab;
@@ -51,48 +64,67 @@
     .folder-hover-wrap:hover .folder-hover-card {
       display: block;
     }
+    .cmd-pop {
+      transition: opacity 150ms cubic-bezier(0.16, 1, 0.3, 1), transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .drag-over-target {
+      border-color: rgba(129, 140, 248, 0.8) !important;
+      background-color: rgba(94, 106, 210, 0.16) !important;
+    }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 dark:bg-[#080c14] dark:text-slate-100 h-screen w-screen overflow-hidden flex flex-col antialiased selection:bg-indigo-500/15 selection:text-indigo-600 dark:selection:text-indigo-300">
+<body class="bg-[#f8fafc] text-slate-900 dark:bg-[#08090c] dark:text-[#f7f8f8] h-screen w-screen overflow-hidden flex flex-col antialiased selection:bg-indigo-500/25 selection:text-indigo-200">
 
-  <!-- Top Institutional Header -->
-  <header class="h-12 shrink-0 border-b border-slate-200/80 dark:border-slate-800/90 bg-white/95 dark:bg-[#0d131f]/95 backdrop-blur-md px-3 sm:px-5 flex items-center justify-between gap-3 z-30">
+  <!-- Linear-style Top Precision Header -->
+  <header class="h-12 shrink-0 border-b border-slate-200/80 dark:border-white/[0.08] bg-white/90 dark:bg-[#0c0e14]/90 backdrop-blur-md px-3 sm:px-5 flex items-center justify-between gap-3 z-30">
     <div class="flex items-center gap-2.5 min-w-0">
-      <button id="btn-toggle-sidebar" class="lg:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors" title="切换目录">
+      <button id="btn-toggle-sidebar" class="lg:hidden p-1.5 rounded-[10px] text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-colors duration-150" title="切换目录">
         <i data-lucide="panel-left" class="w-4 h-4"></i>
       </button>
-      <div class="w-7 h-7 rounded-lg bg-slate-900 dark:bg-indigo-600 flex items-center justify-center text-white shadow-sm shrink-0">
-        <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+      <!-- INLIST Custom Geometric SVG Logo -->
+      <div class="w-7 h-7 rounded-[9px] bg-[#131620] dark:bg-[#151823] border border-slate-300/60 dark:border-white/[0.12] linear-surface flex items-center justify-center shrink-0">
+        <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" aria-hidden="true">
+          <rect x="4" y="5" width="4" height="14" rx="1.5" fill="#818cf8"/>
+          <rect x="10.5" y="5" width="9.5" height="3.2" rx="1.5" fill="#f8fafc"/>
+          <rect x="10.5" y="10.4" width="7.2" height="3.2" rx="1.5" fill="#cbd5e1" fill-opacity="0.82"/>
+          <rect x="10.5" y="15.8" width="9.5" height="3.2" rx="1.5" fill="#6366f1"/>
+        </svg>
       </div>
-      <div class="flex items-center gap-2 min-w-0">
-        <span class="font-semibold text-[13px] tracking-tight text-slate-900 dark:text-white truncate">NexusClip</span>
-        <span class="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-500 dark:bg-slate-800/90 dark:text-slate-400 border border-slate-200/70 dark:border-slate-700/70">RESEARCH INDEX</span>
-      </div>
+      <span class="font-semibold text-[13.5px] tracking-[-0.02em] text-slate-900 dark:text-white truncate">INLIST</span>
     </div>
+
+    <!-- Center: Command Palette Trigger (⌘K) -->
+    <button id="btn-open-cmd" type="button" class="hidden md:flex items-center justify-between gap-6 px-3 py-1.5 w-64 lg:w-80 rounded-[10px] border border-slate-200/90 dark:border-white/[0.08] bg-slate-100/70 dark:bg-[#11131a] hover:border-slate-300 dark:hover:border-white/[0.16] text-xs text-slate-400 transition-all duration-150 linear-surface">
+      <span class="inline-flex items-center gap-2">
+        <i data-lucide="search" class="w-3.5 h-3.5"></i>
+        <span>快速检索或执行命令...</span>
+      </span>
+      <kbd class="px-1.5 py-0.5 rounded bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] font-mono text-[10px] text-slate-500 dark:text-slate-400">⌘K</kbd>
+    </button>
 
     <!-- Right Toolbar -->
     <div class="flex items-center gap-1.5 shrink-0">
-      <button id="btn-rerun-local" class="hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800/60 text-amber-700 dark:text-amber-300 text-[11px] font-medium hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors" title="使用已配置的 AI 模型重新精排本地归档条目">
-        <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+      <button id="btn-rerun-local" class="hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-300 text-[11px] font-medium hover:bg-amber-500/20 transition-colors duration-150" title="AI 批量智能重整（按每分钟 RPM 自动节流）">
+        <i data-lucide="sparkles" class="w-3 h-3"></i>
         <span id="rerun-local-label">待精排 0</span>
       </button>
-      <button id="btn-open-import" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200/90 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-[11px] font-medium transition-colors" title="导入 HTML / JSON / CSV / Markdown">
+      <button id="btn-open-import" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-[#131620] hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 text-[11px] font-medium transition-colors duration-150 linear-surface" title="导入 HTML / JSON / CSV / Markdown">
         <i data-lucide="upload" class="w-3.5 h-3.5"></i>
         <span class="hidden sm:inline">导入</span>
       </button>
-      <button id="btn-simulate-clip" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white text-[11px] font-medium shadow-sm transition-colors">
+      <button id="btn-simulate-clip" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium shadow-sm transition-colors duration-150">
         <i data-lucide="plus" class="w-3.5 h-3.5"></i>
         <span class="hidden sm:inline">采集网页</span>
       </button>
-      <button id="btn-bookmarklet-guide" class="p-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/70 text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors" title="书签脚本">
+      <button id="btn-bookmarklet-guide" class="p-1.5 rounded-[10px] border border-slate-200/80 dark:border-white/[0.08] text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-colors duration-150" title="书签脚本">
         <i data-lucide="bookmark" class="w-3.5 h-3.5"></i>
       </button>
-      <button id="btn-open-settings" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/70 text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 text-[11px] font-medium transition-colors" title="模型与频率设置">
+      <button id="btn-open-settings" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] border border-slate-200/80 dark:border-white/[0.08] text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/[0.06] text-[11px] font-medium transition-colors duration-150" title="AI 模型与频率设置">
         <span id="llm-status-dot" class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
         <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
         <span class="hidden md:inline">模型设置</span>
       </button>
-      <button id="btn-toggle-theme" class="p-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/70 text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors" title="切换主题">
+      <button id="btn-toggle-theme" class="p-1.5 rounded-[10px] border border-slate-200/80 dark:border-white/[0.08] text-slate-500 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/[0.06] transition-colors duration-150" title="切换明暗主题">
         <i data-lucide="moon" class="w-3.5 h-3.5 dark:hidden"></i>
         <i data-lucide="sun" class="w-3.5 h-3.5 hidden dark:block"></i>
       </button>
@@ -103,66 +135,68 @@
   <div class="flex-1 flex min-h-0 relative overflow-hidden">
 
     <!-- Mobile Sidebar Backdrop -->
-    <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] z-20 hidden lg:hidden"></div>
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/50 backdrop-blur-[1px] z-20 hidden lg:hidden"></div>
 
-    <!-- Left Sidebar: Institutional Directory Tree -->
-    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 top-12 lg:top-0 w-64 sm:w-[264px] shrink-0 bg-white dark:bg-[#0d131f] border-r border-slate-200/80 dark:border-slate-800/90 flex flex-col z-20 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out">
+    <!-- Left Sidebar: Precision Directory Tree (Drop Target for Bookmarks) -->
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 top-12 lg:top-0 w-64 sm:w-[264px] shrink-0 bg-white dark:bg-[#0c0e14] border-r border-slate-200/80 dark:border-white/[0.08] flex flex-col z-20 transform -translate-x-full lg:translate-x-0 transition-transform duration-150 ease-out">
       <!-- Search -->
-      <div class="p-3 border-b border-slate-100 dark:border-slate-800/80">
+      <div class="p-3 border-b border-slate-100 dark:border-white/[0.06]">
         <div class="relative">
           <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-          <input id="search-input" type="text" placeholder="检索标题、标签或域名..." class="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-700/80 focus:border-indigo-500 rounded-lg outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition-colors" />
+          <input id="search-input" type="text" placeholder="筛选书签、标签或域名..." class="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 dark:bg-[#12151e] border border-slate-200/80 dark:border-white/[0.08] focus:border-indigo-500 rounded-[10px] outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-500 transition-colors duration-150" />
           <button id="btn-clear-search" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
             <i data-lucide="x" class="w-3.5 h-3.5"></i>
           </button>
         </div>
       </div>
 
-      <!-- Folder List -->
+      <!-- Folder Header -->
       <div class="px-3 pt-3 pb-1.5 flex items-center justify-between">
-        <span class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">收藏夹目录</span>
-        <button id="btn-add-folder" type="button" class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors" title="新建收藏夹">
+        <span class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">收藏夹 · 可拖拽归档</span>
+        <button id="btn-add-folder" type="button" class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-colors duration-150" title="新建收藏夹">
           <i data-lucide="folder-plus" class="w-3 h-3"></i>
           <span>新建</span>
         </button>
       </div>
       <div id="sidebar-new-folder-box" class="hidden px-2.5 pb-2">
         <div class="flex items-center gap-1">
-          <input id="sidebar-new-folder-input" type="text" placeholder="输入收藏夹名称..." class="flex-1 min-w-0 px-2 py-1 text-xs rounded-md border border-indigo-400 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none" />
-          <button id="btn-sidebar-new-folder-ok" type="button" class="px-2 py-1 rounded-md bg-indigo-600 text-white text-[11px] font-medium shrink-0">确定</button>
-          <button id="btn-sidebar-new-folder-cancel" type="button" class="p-1 rounded-md text-slate-400 hover:text-slate-600 shrink-0"><i data-lucide="x" class="w-3 h-3"></i></button>
+          <input id="sidebar-new-folder-input" type="text" placeholder="输入收藏夹名称..." class="flex-1 min-w-0 px-2 py-1 text-xs rounded-[8px] border border-indigo-500/60 bg-white dark:bg-[#12151e] text-slate-900 dark:text-white outline-none" />
+          <button id="btn-sidebar-new-folder-ok" type="button" class="px-2 py-1 rounded-[8px] bg-indigo-600 text-white text-[11px] font-medium shrink-0">确定</button>
+          <button id="btn-sidebar-new-folder-cancel" type="button" class="p-1 rounded-[8px] text-slate-400 hover:text-slate-200 shrink-0"><i data-lucide="x" class="w-3 h-3"></i></button>
         </div>
       </div>
+
+      <!-- Folder List -->
       <div class="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5" id="folder-tree-container">
         <!-- Rendered dynamically -->
       </div>
 
       <!-- Footer -->
-      <div class="px-3 py-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 bg-slate-50/50 dark:bg-slate-900/30">
-        <span id="sidebar-stats" class="tabular-nums">0 目录 · 0 条</span>
-        <span id="storage-badge" class="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">IndexedDB</span>
+      <div class="px-3 py-2.5 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+        <span id="sidebar-stats" class="font-mono tabular-nums">0 收藏夹 · 0 条</span>
+        <span id="storage-badge" class="font-mono text-[10px] text-emerald-500">IndexedDB</span>
       </div>
     </aside>
 
-    <!-- Right Workspace: Institutional Research Table -->
-    <main class="flex-1 relative min-w-0 h-full overflow-hidden">
-      <section id="view-folder" class="w-full h-full overflow-y-auto bg-[#f8fafc] dark:bg-[#080c14] p-4 sm:p-6 lg:p-8">
+    <!-- Right Workspace: Linear Dark-Glow Precision Table -->
+    <main class="flex-1 relative min-w-0 h-full overflow-hidden linear-top-glow">
+      <section id="view-folder" class="w-full h-full overflow-y-auto p-4 sm:p-6 lg:p-8">
         <div id="folder-view-content" class="max-w-[1400px] mx-auto space-y-5">
           <!-- Rendered dynamically -->
         </div>
       </section>
 
       <!-- Right Detail Inspector Drawer -->
-      <div id="detail-drawer" class="hidden absolute top-3 bottom-3 right-3 w-[calc(100%-1.5rem)] sm:w-[390px] bg-white/95 dark:bg-[#0d131f]/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xl flex flex-col z-20 overflow-hidden">
-        <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2 shrink-0">
+      <div id="detail-drawer" class="hidden absolute top-3 bottom-3 right-3 w-[calc(100%-1.5rem)] sm:w-[400px] bg-white/95 dark:bg-[#11141d]/95 backdrop-blur-xl border border-slate-200/90 dark:border-white/[0.1] rounded-[12px] shadow-2xl linear-surface flex flex-col z-20 overflow-hidden transition-all duration-150">
+        <div class="px-4 py-3 border-b border-slate-100 dark:border-white/[0.07] flex items-center justify-between gap-2 shrink-0">
           <div class="flex items-center gap-2 min-w-0">
-            <span id="drawer-folder-badge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 truncate"></span>
+            <span id="drawer-folder-badge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 truncate"></span>
           </div>
           <div class="flex items-center gap-1 shrink-0">
-            <button id="btn-delete-bookmark" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors" title="删除书签">
+            <button id="btn-delete-bookmark" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors duration-150" title="删除书签">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
-            <button id="btn-close-drawer" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="关闭面板">
+            <button id="btn-close-drawer" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors duration-150" title="关闭面板">
               <i data-lucide="x" class="w-4 h-4"></i>
             </button>
           </div>
@@ -174,29 +208,43 @@
     </main>
   </div>
 
+  <!-- Modal: ⌘K Command Palette -->
+  <div id="modal-cmd" class="hidden fixed inset-0 z-50 bg-black/55 backdrop-blur-sm flex items-start justify-center pt-[14vh] p-4">
+    <div id="cmd-panel" class="cmd-pop bg-white dark:bg-[#11141d] border border-slate-200 dark:border-white/[0.12] rounded-[12px] shadow-2xl linear-surface w-full max-w-lg overflow-hidden opacity-0 scale-95">
+      <div class="flex items-center gap-2.5 px-4 py-3 border-b border-slate-100 dark:border-white/[0.08]">
+        <i data-lucide="terminal" class="w-4 h-4 text-indigo-500 shrink-0"></i>
+        <input id="cmd-input" type="text" placeholder="搜索书签、跳转收藏夹或输入命令..." class="flex-1 bg-transparent text-xs text-slate-900 dark:text-white placeholder:text-slate-500 outline-none" />
+        <kbd class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] font-mono text-[10px] text-slate-400">ESC</kbd>
+      </div>
+      <div id="cmd-results" class="max-h-72 overflow-y-auto p-2 space-y-1 text-xs">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Multi-format Import -->
-  <div id="modal-import" class="hidden fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-[#0d131f] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+  <div id="modal-import" class="hidden fixed inset-0 z-50 bg-black/55 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#11141d] border border-slate-200 dark:border-white/[0.1] rounded-[12px] shadow-2xl linear-surface w-full max-w-lg overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-white/[0.07] flex items-center justify-between">
         <div>
           <h2 class="text-sm font-semibold text-slate-900 dark:text-white">多格式书签导入</h2>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">支持浏览器导出 HTML、JSON、CSV 及 Markdown</p>
         </div>
-        <button data-close-modal="modal-import" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <button data-close-modal="modal-import" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
       <div class="p-5 space-y-4 text-xs">
         <div class="grid grid-cols-2 gap-2">
-          <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50/60 dark:has-[:checked]:bg-indigo-950/30">
-            <input type="radio" name="import-mode" value="keep" checked class="accent-indigo-600" />
+          <label class="flex items-center gap-2 p-2.5 rounded-[10px] border border-slate-200 dark:border-white/[0.08] cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-500/10">
+            <input type="radio" name="import-mode" value="keep" checked class="accent-indigo-500" />
             <div>
               <div class="font-medium text-slate-800 dark:text-slate-100">保留原文件夹</div>
               <div class="text-[10px] text-slate-400">沿用目录并补全标签</div>
             </div>
           </label>
-          <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50/60 dark:has-[:checked]:bg-indigo-950/30">
-            <input type="radio" name="import-mode" value="reclassify" class="accent-indigo-600" />
+          <label class="flex items-center gap-2 p-2.5 rounded-[10px] border border-slate-200 dark:border-white/[0.08] cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-500/10">
+            <input type="radio" name="import-mode" value="reclassify" class="accent-indigo-500" />
             <div>
               <div class="font-medium text-slate-800 dark:text-slate-100">智能自动重分类</div>
               <div class="text-[10px] text-slate-400">按语义重聚为新文件夹</div>
@@ -204,7 +252,7 @@
           </label>
         </div>
 
-        <label id="import-dropzone" class="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50/70 dark:bg-slate-900/50 cursor-pointer transition-colors text-center">
+        <label id="import-dropzone" class="flex flex-col items-center justify-center p-6 rounded-[10px] border-2 border-dashed border-slate-200 dark:border-white/[0.12] hover:border-indigo-500 bg-slate-50/70 dark:bg-white/[0.02] cursor-pointer transition-colors text-center">
           <i data-lucide="file-up" class="w-7 h-7 text-indigo-500 mb-2"></i>
           <div class="font-medium text-slate-800 dark:text-slate-100">点击选择或拖拽书签文件</div>
           <div class="text-[11px] text-slate-400 mt-1">支持 .html / .htm、.json、.csv、.md</div>
@@ -220,38 +268,38 @@
   </div>
 
   <!-- Modal: Clip Webpage -->
-  <div id="modal-clip" class="hidden fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-[#0d131f] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+  <div id="modal-clip" class="hidden fixed inset-0 z-50 bg-black/55 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#11141d] border border-slate-200 dark:border-white/[0.1] rounded-[12px] shadow-2xl linear-surface w-full max-w-lg overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-white/[0.07] flex items-center justify-between">
         <div>
           <h2 class="text-sm font-semibold text-slate-900 dark:text-white">智能采集网页</h2>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">自动归类、提炼简洁标题与一句话简介</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">自动归类、提炼简洁名称与一句话简介</p>
         </div>
-        <button data-close-modal="modal-clip" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <button data-close-modal="modal-clip" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
       <form id="form-clip" class="p-5 space-y-3.5">
         <div>
           <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">网页标题</label>
-          <input id="clip-title" type="text" required placeholder="例如：Building Effective Agents - Anthropic" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
+          <input id="clip-title" type="text" required placeholder="例如：Building Effective Agents - Anthropic" class="w-full px-3 py-2 text-xs rounded-[10px] border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#0c0e14] text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">网页 URL</label>
-          <input id="clip-url" type="url" required placeholder="https://example.com/article" class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-indigo-500 font-mono" />
+          <input id="clip-url" type="url" required placeholder="https://example.com/article" class="w-full px-3 py-2 text-xs rounded-[10px] border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#0c0e14] text-slate-900 dark:text-white outline-none focus:border-indigo-500 font-mono" />
         </div>
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="block text-xs font-medium text-slate-700 dark:text-slate-300">正文内容</label>
             <button type="button" id="btn-fill-sample-clip" class="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline">填入示例</button>
           </div>
-          <textarea id="clip-content" rows="4" required placeholder="粘贴网页正文或由书签脚本自动传入..." class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-indigo-500 resize-none"></textarea>
+          <textarea id="clip-content" rows="4" required placeholder="粘贴网页正文或由书签脚本自动传入..." class="w-full px-3 py-2 text-xs rounded-[10px] border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#0c0e14] text-slate-900 dark:text-white outline-none focus:border-indigo-500 resize-none"></textarea>
         </div>
         <div class="flex items-center justify-between pt-1">
           <span id="clip-engine-hint" class="text-[11px] text-slate-500 dark:text-slate-400"></span>
           <div class="flex items-center gap-2">
-            <button type="button" data-close-modal="modal-clip" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">取消</button>
-            <button type="submit" id="btn-submit-clip" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white text-xs font-medium transition-colors">
+            <button type="button" data-close-modal="modal-clip" class="px-3 py-1.5 rounded-[10px] text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-white/[0.06]">取消</button>
+            <button type="submit" id="btn-submit-clip" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors">
               <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
               <span>智能归档</span>
             </button>
@@ -262,33 +310,33 @@
   </div>
 
   <!-- Modal: Bookmarklet Guide -->
-  <div id="modal-bookmarklet" class="hidden fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-[#0d131f] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden">
-      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+  <div id="modal-bookmarklet" class="hidden fixed inset-0 z-50 bg-black/55 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#11141d] border border-slate-200 dark:border-white/[0.1] rounded-[12px] shadow-2xl linear-surface w-full max-w-xl overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-white/[0.07] flex items-center justify-between">
         <div>
-          <h2 class="text-sm font-semibold text-slate-900 dark:text-white">书签脚本（Bookmarklet）</h2>
+          <h2 class="text-sm font-semibold text-slate-900 dark:text-white">INLIST 书签脚本（Bookmarklet）</h2>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">零安装绕过登录墙，一键提取当前网页正文并传回</p>
         </div>
-        <button data-close-modal="modal-bookmarklet" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <button data-close-modal="modal-bookmarklet" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
       <div class="p-5 space-y-4 text-xs">
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="p-3.5 rounded-[10px] bg-slate-50 dark:bg-[#0c0e14] border border-slate-200/80 dark:border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div class="font-medium text-slate-800 dark:text-slate-100">第 1 步：拖拽按钮到浏览器书签栏</div>
-            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">按 <kbd class="px-1 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px]">Ctrl/Cmd + Shift + B</kbd> 显示书签栏</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">按 <kbd class="px-1 py-0.5 rounded bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] font-mono text-[10px]">Ctrl/Cmd + Shift + B</kbd> 显示书签栏</div>
           </div>
-          <a id="bookmarklet-drag-modal" href="#" class="bookmarklet-pill shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-slate-900 dark:bg-indigo-600 text-white font-medium shadow-sm hover:opacity-90 transition-opacity">
-            <span>⭐ 智能收藏</span>
+          <a id="bookmarklet-drag-modal" href="#" class="bookmarklet-pill shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-indigo-600 text-white font-medium shadow-sm hover:opacity-90 transition-opacity">
+            <span>⭐ INLIST 收藏</span>
           </a>
         </div>
 
         <div>
           <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">第 2 步：目标 Web 应用地址</label>
           <div class="flex gap-2">
-            <input id="bookmarklet-target-url" type="url" class="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-mono text-[11px] text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500" />
-            <button id="btn-copy-bookmarklet" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium text-slate-700 dark:text-slate-200 shrink-0">复制脚本</button>
+            <input id="bookmarklet-target-url" type="url" class="flex-1 px-3 py-1.5 rounded-[10px] border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#0c0e14] font-mono text-[11px] text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500" />
+            <button id="btn-copy-bookmarklet" class="px-3 py-1.5 rounded-[10px] border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#131620] hover:bg-slate-50 dark:hover:bg-white/[0.06] font-medium text-slate-700 dark:text-slate-200 shrink-0">复制脚本</button>
           </div>
         </div>
       </div>
@@ -296,14 +344,14 @@
   </div>
 
   <!-- Modal: BYOK Settings (Custom Models + Per-Minute RPM Rate Limit) -->
-  <div id="modal-settings" class="hidden fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-[#0d131f] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden max-h-[92vh] flex flex-col">
-      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+  <div id="modal-settings" class="hidden fixed inset-0 z-50 bg-black/55 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#11141d] border border-slate-200 dark:border-white/[0.1] rounded-[12px] shadow-2xl linear-surface w-full max-w-xl overflow-hidden max-h-[92vh] flex flex-col">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-white/[0.07] flex items-center justify-between shrink-0">
         <div>
           <h2 class="text-sm font-semibold text-slate-900 dark:text-white">AI 大模型与调用频率设置</h2>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">支持预设、自定义大模型及每分钟调用频率（RPM）控制</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">支持批量并发打包（提速 8×）及每分钟 RPM 频率控制</p>
         </div>
-        <button data-close-modal="modal-settings" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <button data-close-modal="modal-settings" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06]">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
@@ -311,60 +359,58 @@
         <div>
           <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1.5">模型服务商（含自定义 AI 大模型）</label>
           <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5" id="provider-presets">
-            <button type="button" data-provider="openai" class="provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors">OpenAI</button>
-            <button type="button" data-provider="gemini" class="provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors">Gemini</button>
-            <button type="button" data-provider="deepseek" class="provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors">DeepSeek</button>
-            <button type="button" data-provider="groq" class="provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors">Groq</button>
-            <button type="button" data-provider="ollama" class="provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors">Ollama</button>
-            <button type="button" data-provider="custom" class="provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors">自定义</button>
+            <button type="button" data-provider="openai" class="provider-btn px-2 py-1.5 rounded-[8px] border text-center font-medium transition-colors">OpenAI</button>
+            <button type="button" data-provider="gemini" class="provider-btn px-2 py-1.5 rounded-[8px] border text-center font-medium transition-colors">Gemini</button>
+            <button type="button" data-provider="deepseek" class="provider-btn px-2 py-1.5 rounded-[8px] border text-center font-medium transition-colors">DeepSeek</button>
+            <button type="button" data-provider="groq" class="provider-btn px-2 py-1.5 rounded-[8px] border text-center font-medium transition-colors">Groq</button>
+            <button type="button" data-provider="ollama" class="provider-btn px-2 py-1.5 rounded-[8px] border text-center font-medium transition-colors">Ollama</button>
+            <button type="button" data-provider="custom" class="provider-btn px-2 py-1.5 rounded-[8px] border text-center font-medium transition-colors">自定义</button>
           </div>
         </div>
 
-        <!-- Saved Custom Models Quick Selector -->
-        <div id="custom-models-section" class="hidden rounded-xl border border-indigo-200/70 dark:border-indigo-800/60 bg-indigo-50/40 dark:bg-indigo-950/20 p-3 space-y-2">
+        <div id="custom-models-section" class="hidden rounded-[10px] border border-indigo-500/30 bg-indigo-500/5 p-3 space-y-2">
           <div class="flex items-center justify-between">
             <span class="font-semibold text-slate-800 dark:text-slate-100">自定义 AI 大模型配置</span>
-            <button type="button" id="btn-save-custom-model" class="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline">+ 存为常用自定义模型</button>
+            <button type="button" id="btn-save-custom-model" class="text-[11px] font-medium text-indigo-500 hover:underline">+ 存为常用自定义模型</button>
           </div>
           <div class="flex flex-wrap items-center gap-1.5" id="custom-models-list"></div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-            <input id="setting-custom-name" type="text" placeholder="自定义名称（如：硅基流动 Qwen3）" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[11px] outline-none focus:border-indigo-500" />
-            <input id="setting-custom-header" type="text" placeholder="可选附加 Header（如 X-Api-Version: 2025）" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-[11px] outline-none focus:border-indigo-500" />
+            <input id="setting-custom-name" type="text" placeholder="自定义名称（如：硅基流动 Qwen3）" class="px-2.5 py-1.5 rounded-[8px] border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#0c0e14] text-[11px] outline-none focus:border-indigo-500" />
+            <input id="setting-custom-header" type="text" placeholder="可选附加 Header（如 X-Api-Version: 2025）" class="px-2.5 py-1.5 rounded-[8px] border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#0c0e14] font-mono text-[11px] outline-none focus:border-indigo-500" />
           </div>
         </div>
 
         <div class="space-y-3">
           <div>
             <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">API Endpoint (OpenAI 兼容格式)</label>
-            <input id="setting-endpoint" type="url" placeholder="https://api.example.com/v1/chat/completions" class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-mono text-[11px] text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
+            <input id="setting-endpoint" type="url" placeholder="https://api.example.com/v1/chat/completions" class="w-full px-3 py-2 rounded-[10px] border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#0c0e14] font-mono text-[11px] text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Model 名称</label>
-              <input id="setting-model" type="text" placeholder="gpt-4o-mini / qwen-plus" class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-mono text-[11px] text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
+              <input id="setting-model" type="text" placeholder="gpt-4o-mini / qwen-plus" class="w-full px-3 py-2 rounded-[10px] border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#0c0e14] font-mono text-[11px] text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
             </div>
             <div>
               <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">API Key (本地 Ollama 可留空)</label>
-              <input id="setting-apikey" type="password" placeholder="sk-..." class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 font-mono text-[11px] text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
+              <input id="setting-apikey" type="password" placeholder="sk-..." class="w-full px-3 py-2 rounded-[10px] border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#0c0e14] font-mono text-[11px] text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
             </div>
           </div>
 
-          <!-- Per-Minute Rate Limit (RPM) Controls -->
-          <div class="rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-900/60 p-3 space-y-3">
+          <div class="rounded-[10px] border border-slate-200 dark:border-white/[0.08] bg-slate-50/80 dark:bg-[#0c0e14] p-3 space-y-3">
             <div class="flex items-center justify-between gap-3">
               <div>
                 <div class="font-semibold text-slate-800 dark:text-slate-100">每分钟调用频率限制（RPM）</div>
-                <p class="text-[10px] text-slate-500 mt-0.5">按 60 秒滑动窗口本地限流，防止触发 API 并发封控</p>
+                <p class="text-[10px] text-slate-500 mt-0.5">每次请求自动打包 8 条书签批量处理，兼顾 8× 速度与限流</p>
               </div>
               <label class="inline-flex items-center gap-2 text-[11px] font-medium cursor-pointer">
-                <input id="setting-llm-enabled" type="checkbox" class="accent-indigo-600" checked />
+                <input id="setting-llm-enabled" type="checkbox" class="accent-indigo-500" checked />
                 <span>启用大模型</span>
               </label>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <label class="block">
                 <span class="block text-[10px] text-slate-500 mb-1">每分钟调用频率</span>
-                <select id="setting-rpm-limit" class="w-full px-2.5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium outline-none focus:border-indigo-500">
+                <select id="setting-rpm-limit" class="w-full px-2.5 py-2 rounded-[8px] border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#131620] text-xs font-medium outline-none focus:border-indigo-500">
                   <option value="3">3 次 / 分钟（保守）</option>
                   <option value="5">5 次 / 分钟（免费版推荐）</option>
                   <option value="10">10 次 / 分钟（标准）</option>
@@ -375,42 +421,42 @@
               </label>
               <label class="block">
                 <span class="block text-[10px] text-slate-500 mb-1">输入上限（字符）</span>
-                <input id="setting-input-limit" type="number" min="500" max="100000" step="500" class="w-full px-2.5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono" />
+                <input id="setting-input-limit" type="number" min="500" max="100000" step="500" class="w-full px-2.5 py-2 rounded-[8px] border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#131620] text-xs font-mono" />
               </label>
               <label class="block">
                 <span class="block text-[10px] text-slate-500 mb-1">输出上限（Token）</span>
-                <input id="setting-output-limit" type="number" min="64" max="8192" step="64" class="w-full px-2.5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono" />
+                <input id="setting-output-limit" type="number" min="64" max="8192" step="64" class="w-full px-2.5 py-2 rounded-[8px] border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#131620] text-xs font-mono" />
               </label>
             </div>
             <div class="flex items-center justify-between text-[10px] text-slate-500">
               <span id="llm-usage-counter" class="font-mono">本分钟已用 0 / 10 次</span>
-              <button id="btn-reset-llm-usage" type="button" class="text-indigo-600 dark:text-indigo-400 hover:underline">重置当前窗口</button>
+              <button id="btn-reset-llm-usage" type="button" class="text-indigo-500 hover:underline">重置当前窗口</button>
             </div>
           </div>
 
-          <div id="llm-test-result" class="hidden p-2.5 rounded-xl border text-[11px] font-mono leading-relaxed break-all"></div>
+          <div id="llm-test-result" class="hidden p-2.5 rounded-[10px] border text-[11px] font-mono leading-relaxed break-all"></div>
           <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
             <span class="text-[11px] text-slate-500 dark:text-slate-400">超限或异常时自动降级本地引擎</span>
             <div class="flex items-center gap-2">
-              <button type="button" id="btn-test-llm" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium transition-colors">
+              <button type="button" id="btn-test-llm" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#131620] hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 font-medium transition-colors">
                 <i data-lucide="activity" class="w-3.5 h-3.5 text-indigo-500"></i>
                 <span>测试连接</span>
               </button>
-              <button type="button" id="btn-save-settings" class="px-4 py-1.5 rounded-lg bg-slate-900 dark:bg-indigo-600 hover:opacity-90 text-white font-medium">保存配置</button>
+              <button type="button" id="btn-save-settings" class="px-4 py-1.5 rounded-[10px] bg-indigo-600 hover:bg-indigo-500 text-white font-medium">保存配置</button>
             </div>
           </div>
         </div>
 
-        <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+        <div class="pt-4 border-t border-slate-100 dark:border-white/[0.07] space-y-2.5">
           <div class="font-medium text-slate-700 dark:text-slate-300">IndexedDB 数据管理</div>
           <div class="flex flex-wrap items-center gap-2">
-            <button id="btn-export-json" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium">
+            <button id="btn-export-json" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] border border-slate-200 dark:border-white/[0.08] hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 font-medium">
               <i data-lucide="download" class="w-3.5 h-3.5"></i> 导出 JSON
             </button>
-            <button id="btn-export-html" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium">
+            <button id="btn-export-html" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] border border-slate-200 dark:border-white/[0.08] hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 font-medium">
               <i data-lucide="file-code" class="w-3.5 h-3.5"></i> 导出书签 HTML
             </button>
-            <button id="btn-reset-demo" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-medium">
+            <button id="btn-reset-demo" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 font-medium">
               <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 重置演示数据
             </button>
           </div>
@@ -420,21 +466,21 @@
   </div>
 
   <!-- Modal: Delete Folder Confirmation -->
-  <div id="modal-delete-folder" class="hidden fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-[#0d131f] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+  <div id="modal-delete-folder" class="hidden fixed inset-0 z-50 bg-black/55 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#11141d] border border-slate-200 dark:border-white/[0.1] rounded-[12px] shadow-2xl linear-surface w-full max-w-sm overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-white/[0.07] flex items-center justify-between">
         <h2 class="text-sm font-semibold text-slate-900 dark:text-white">删除收藏夹</h2>
-        <button data-close-modal="modal-delete-folder" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+        <button data-close-modal="modal-delete-folder" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
       <div class="p-5 space-y-4 text-xs">
         <p id="delete-folder-desc" class="text-slate-600 dark:text-slate-300 leading-relaxed"></p>
         <div class="flex flex-col gap-2">
-          <button id="btn-del-folder-move" type="button" class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium text-left">
+          <button id="btn-del-folder-move" type="button" class="w-full px-3 py-2 rounded-[10px] border border-slate-200 dark:border-white/[0.08] hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 font-medium text-left">
             保留书签，仅删除收藏夹（移至「未分类」）
           </button>
-          <button id="btn-del-folder-all" type="button" class="w-full px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-left">
+          <button id="btn-del-folder-all" type="button" class="w-full px-3 py-2 rounded-[10px] bg-rose-600 hover:bg-rose-500 text-white font-medium text-left">
             连同内部书签一起彻底删除
           </button>
         </div>
@@ -454,15 +500,15 @@
       // =========================================================================
       function initPWA() {
         try {
-          const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#0f172a"/><circle cx="64" cy="40" r="14" fill="#6366f1"/><circle cx="36" cy="88" r="11" fill="#38bdf8"/><circle cx="92" cy="88" r="11" fill="#10b981"/><path d="M64 40 L36 88 M64 40 L92 88 M36 88 L92 88" stroke="#94a3b8" stroke-width="5" stroke-linecap="round"/></svg>`;
+          const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#0c0e14"/><rect x="26" y="28" width="18" height="72" rx="7" fill="#818cf8"/><rect x="54" y="28" width="48" height="16" rx="7" fill="#f8fafc"/><rect x="54" y="56" width="36" height="16" rx="7" fill="#cbd5e1"/><rect x="54" y="84" width="48" height="16" rx="7" fill="#6366f1"/></svg>`;
           const iconUrl = 'data:image/svg+xml;base64,' + btoa(iconSvg);
           const manifest = {
-            name: 'NexusClip · 机构级书签研究工作台',
-            short_name: 'NexusClip',
+            name: 'INLIST · 智能收藏工作台',
+            short_name: 'INLIST',
             start_url: '.',
             display: 'standalone',
-            background_color: '#080c14',
-            theme_color: '#0f172a',
+            background_color: '#08090c',
+            theme_color: '#08090c',
             icons: [{ src: iconUrl, sizes: '128x128', type: 'image/svg+xml' }]
           };
           const mBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
@@ -471,7 +517,7 @@
 
           if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
             const swCode = `
-              const CACHE = 'nexusclip-v4';
+              const CACHE = 'inlist-v1';
               self.addEventListener('install', () => self.skipWaiting());
               self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
               self.addEventListener('fetch', e => {
@@ -494,9 +540,9 @@
       }
 
       // =========================================================================
-      // 2. Constants, Presets & Concise Institutional Demo Data
+      // 2. Constants, Presets & Demo Seed Data
       // =========================================================================
-      const FOLDER_COLORS = ['#4f46e5', '#0284c7', '#059669', '#d97706', '#db2777', '#7c3aed', '#0d9488'];
+      const FOLDER_COLORS = ['#818cf8', '#38bdf8', '#34d399', '#fbbf24', '#f472b6', '#a78bfa', '#2dd4bf'];
 
       const LLM_PRESETS = {
         openai: { endpoint: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o-mini' },
@@ -514,8 +560,7 @@
           title: 'Anthropic 智能体工程实践',
           url: 'https://www.anthropic.com/research/building-effective-agents',
           summary: '阐述可组合工作流与自主智能体的设计边界及工具接口规范。',
-          tags: ['Agent', '工作流', '架构'],
-          edges: [{ targetId: 'bm-local-first', relation: '工程简洁性', weight: 0.85 }],
+          tags: ['Agent', '工作流', 'LLM'],
           excerpt: 'Most successful implementations use simple, composable patterns rather than complex frameworks...',
           createdAt: Date.now() - 86400000 * 6,
           engine: 'LLM 预设'
@@ -526,8 +571,7 @@
           title: 'GraphRAG 混合索引策略',
           url: 'https://arxiv.org/abs/2404.16130',
           summary: '结合向量检索与知识图谱社区摘要，显著提升跨文档多跳推理精度。',
-          tags: ['GraphRAG', '知识图谱', '检索'],
-          edges: [{ targetId: 'bm-sqlite-vec', relation: '混合存储', weight: 0.9 }],
+          tags: ['GraphRAG', '知识图谱', 'RAG'],
           excerpt: 'Combining vector similarity with graph-based community summaries enables global sensemaking...',
           createdAt: Date.now() - 86400000 * 5,
           engine: 'LLM 预设'
@@ -538,8 +582,7 @@
           title: 'Local-First 本地优先原则',
           url: 'https://www.inkandswitch.com/local-first/',
           summary: '以客户端本地存储为主数据源，实现零延迟交互与离线数据自主权。',
-          tags: ['Local-First', 'IndexedDB', '隐私'],
-          edges: [{ targetId: 'bm-sqlite-vec', relation: '持久化引擎', weight: 0.92 }],
+          tags: ['Local-First', 'IndexedDB', '离线缓存'],
           excerpt: 'In local-first software, the availability of your data does not depend on any single server...',
           createdAt: Date.now() - 86400000 * 4,
           engine: 'LLM 预设'
@@ -550,8 +593,7 @@
           title: 'IndexedDB 客户端索引优化',
           url: 'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API',
           summary: '利用异步事务与冷热数据拆分，保障浏览器端海量书签零阻塞检索。',
-          tags: ['IndexedDB', '存储', '性能'],
-          edges: [],
+          tags: ['IndexedDB', '数据库', '性能优化'],
           excerpt: 'IndexedDB is a low-level API for client-side storage of significant amounts of structured data...',
           createdAt: Date.now() - 86400000 * 3,
           engine: 'LLM 预设'
@@ -562,8 +604,7 @@
           title: 'PWA 零安装桌面应用',
           url: 'https://web.dev/explore/progressive-web-apps',
           summary: '借助 Manifest 与 Service Worker 实现免商店审核的离线桌面级体验。',
-          tags: ['PWA', '离线缓存', '前端'],
-          edges: [{ targetId: 'bm-design-sys', relation: '桌面级规范', weight: 0.81 }],
+          tags: ['PWA', '离线缓存', 'Canvas'],
           excerpt: 'Progressive Web Apps provide installable, offline-capable experiences directly from the web...',
           createdAt: Date.now() - 86400000 * 2,
           engine: 'LLM 预设'
@@ -574,8 +615,7 @@
           title: 'Linear 工具美学与层级',
           url: 'https://linear.app/method',
           summary: '通过克制色彩、细线分隔与清晰排版构建高效率专业工作台。',
-          tags: ['UI设计', '设计系统', '交互'],
-          edges: [],
+          tags: ['设计系统', '交互设计', 'UI'],
           excerpt: 'Craftsmanship in productivity tools comes from speed, precision, and uncluttered hierarchy...',
           createdAt: Date.now() - 86400000,
           engine: 'LLM 预设'
@@ -587,7 +627,6 @@
           url: 'https://notes.andymatuschak.org/Evergreen_notes',
           summary: '将零散书签转化为原子化、以概念为核心的高密度知识节点。',
           tags: ['知识管理', '产品', '笔记'],
-          edges: [{ targetId: 'bm-agent-arch', relation: '认知减负', weight: 0.86 }],
           excerpt: 'Evergreen notes should be atomic, concept-oriented, and densely linked across contexts...',
           createdAt: Date.now() - 3600000 * 12,
           engine: 'LLM 预设'
@@ -604,7 +643,7 @@
       const RPM_KEY = 'nexusclip_llm_rpm_timestamps_v1';
       const CUSTOM_MODELS_KEY = 'nexusclip_custom_models_v1';
       const FOLDERS_KEY = 'nexusclip_folders_v1';
-      const THEME_KEY = 'nexusclip_theme_v1';
+      const THEME_KEY = 'inlist_theme_v1';
 
       let memoryFallbackBookmarks = [];
       let useMemoryFallback = false;
@@ -747,7 +786,7 @@
           llmEnabled: true,
           rpmLimit: 10,
           maxInputChars: 12000,
-          maxOutputTokens: 700
+          maxOutputTokens: 1200
         };
         try {
           const raw = localStorage.getItem(SETTINGS_KEY);
@@ -775,9 +814,6 @@
         try { localStorage.setItem(CUSTOM_MODELS_KEY, JSON.stringify(list)); } catch (_) {}
       }
 
-      // =========================================================================
-      // 4. Application State
-      // =========================================================================
       function loadCustomFolders() {
         try {
           const raw = localStorage.getItem(FOLDERS_KEY);
@@ -791,6 +827,9 @@
         try { localStorage.setItem(FOLDERS_KEY, JSON.stringify(list)); } catch (_) {}
       }
 
+      // =========================================================================
+      // 4. Application State
+      // =========================================================================
       const state = {
         bookmarks: [],
         customFolders: loadCustomFolders(),
@@ -801,6 +840,7 @@
         selectedBookmarkId: null,
         editingFolder: null,
         pendingDeleteFolder: null,
+        draggingBookmarkId: null,
         isProcessing: false,
         isRerunning: false,
         cancelRerun: false
@@ -813,18 +853,18 @@
         const container = document.getElementById('toast-container');
         const el = document.createElement('div');
         const colors = {
-          info: 'bg-slate-900 dark:bg-slate-800 text-white border-slate-700',
+          info: 'bg-[#131620] text-slate-100 border-white/[0.12]',
           success: 'bg-emerald-600 text-white border-emerald-500',
           warning: 'bg-amber-600 text-white border-amber-500',
           error: 'bg-rose-600 text-white border-rose-500'
         };
-        el.className = `pointer-events-auto px-3.5 py-2 rounded-xl border text-xs font-medium shadow-lg flex items-center gap-2 transition-all duration-200 translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+        el.className = `pointer-events-auto px-3.5 py-2 rounded-[10px] border text-xs font-medium shadow-xl flex items-center gap-2 transition-all duration-150 translate-y-2 opacity-0 ${colors[type] || colors.info}`;
         el.textContent = message;
         container.appendChild(el);
         requestAnimationFrame(() => el.classList.remove('translate-y-2', 'opacity-0'));
         setTimeout(() => {
           el.classList.add('translate-y-2', 'opacity-0');
-          setTimeout(() => el.remove(), 220);
+          setTimeout(() => el.remove(), 180);
         }, 3000);
       }
 
@@ -859,7 +899,7 @@
       // 6. Fast Bookmarklet Generator & Incoming Clip Receiver
       // =========================================================================
       function buildBookmarkletCode(targetUrl) {
-        const cleanTarget = (targetUrl || '').split('#')[0] || 'https://your-nexusclip-app.example.com';
+        const cleanTarget = (targetUrl || '').split('#')[0] || 'https://your-inlist-app.example.com';
         const fnBody = `
           (function(){
             var d=document,l=location.href,t=d.title||l;
@@ -867,12 +907,12 @@
             var txt=(el&&el.innerText?el.innerText:'').replace(/\\s+/g,' ').trim().slice(0,2200);
             var payload={type:'NEXUS_CLIP',title:t,url:l,content:txt,clippedAt:Date.now()};
             var tip=d.createElement('div');
-            tip.textContent='⚡ 已发送到 NexusClip';
-            tip.style.cssText='position:fixed;top:16px;right:16px;z-index:2147483647;background:#0f172a;color:#fff;padding:8px 14px;border-radius:10px;font:500 12px/1.4 sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.22)';
+            tip.textContent='⚡ 已发送到 INLIST';
+            tip.style.cssText='position:fixed;top:16px;right:16px;z-index:2147483647;background:#11141d;color:#fff;padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);font:500 12px/1.4 sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.3)';
             d.body.appendChild(tip);
-            setTimeout(function(){tip.remove();},1800);
+            setTimeout(function(){tip.remove();},1600);
             var b64=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-            var w=window.open(${JSON.stringify(cleanTarget)}+'#clip='+encodeURIComponent(b64),'NexusClipWindow');
+            var w=window.open(${JSON.stringify(cleanTarget)}+'#clip='+encodeURIComponent(b64),'INLISTWindow');
             if(w){try{w.postMessage(payload,'*');}catch(e){}}
           })();
         `.replace(/\s+/g, ' ').trim();
@@ -917,7 +957,7 @@
       }
 
       // =========================================================================
-      // 7. BYOK LLM Processor, Per-Minute RPM Limiter & Local TF-IDF Fallback
+      // 7. Hybrid Local Classifier + High-Speed Batched AI Processor (8× Faster)
       // =========================================================================
       function tokenize(text) {
         const clean = (text || '').toLowerCase();
@@ -951,7 +991,7 @@
         const raw = (text || '').replace(/\s+/g, ' ').trim();
         if (!raw) return fallback;
         const first = raw.split(/[。！？.!?]\s*/).map((s) => s.trim()).find((s) => s.length >= 6);
-        const chosen = (first || raw).slice(0, 46);
+        const chosen = (first || raw).slice(0, 44);
         return chosen.endsWith('。') ? chosen : chosen + '。';
       }
 
@@ -964,6 +1004,21 @@
           .trim();
         if (!t) t = getHostname(url) || '未命名书签';
         return t.length > 24 ? t.slice(0, 23) + '…' : t;
+      }
+
+      function normalizeFolderName(name) {
+        const n = String(name || '').trim();
+        if (!n) return '综合资料';
+        const alias = [
+          { target: 'AI 架构', match: /^(ai|llm|agent|大模型|人工智能|机器学习)/i },
+          { target: '前端工程', match: /^(frontend|web|ui|ux|前端|交互|设计)/i },
+          { target: '系统与存储', match: /^(system|infra|db|database|后端|架构|数据库|云原生)/i },
+          { target: '产品研究', match: /^(product|growth|note|产品|增长|知识管理)/i }
+        ];
+        for (const a of alias) {
+          if (a.match.test(n) && n.length <= 10) return a.target;
+        }
+        return n;
       }
 
       function extractPreciseTags(title, url, content, folder) {
@@ -1017,7 +1072,6 @@
           if (picked.length < 3 && !picked.includes(x.tag)) picked.push(x.tag);
         });
 
-        // Fallback: extract capitalized technical terms from title
         if (picked.length < 2) {
           const caps = String(title || '').match(/\b[A-Z][A-Za-z0-9.+-]{2,14}\b/g) || [];
           caps.forEach((w) => {
@@ -1033,23 +1087,6 @@
         return picked.slice(0, 3);
       }
 
-      function normalizeFolderName(name) {
-        const n = String(name || '').trim();
-        if (!n) return '综合资料';
-        const alias = [
-          { target: 'AI 架构', match: /^(ai|llm|agent|大模型|人工智能|机器学习)/i },
-          { target: '前端工程', match: /^(frontend|web|ui|ux|前端|交互|设计)/i },
-          { target: '系统与存储', match: /^(system|infra|db|database|后端|架构|数据库|云原生)/i },
-          { target: '产品研究', match: /^(product|growth|note|产品|增长|知识管理)/i }
-        ];
-        for (const a of alias) {
-          if (a.match.test(n) && n.length <= 10) return a.target;
-        }
-        return n;
-      }
-
-      // Multi-method hybrid classification:
-      // 1) Domain & URL path prior  2) Weighted TF-IDF similarity  3) Keyword topic voting
       function classifyBookmarkHybrid(title, url, content, excludeId = null, preferredFolder = null) {
         if (preferredFolder) return normalizeFolderName(preferredFolder);
         const scores = new Map();
@@ -1058,7 +1095,6 @@
           scores.set(f, (scores.get(f) || 0) + pts);
         };
 
-        // Method 1: Domain & URL path prior (0.35 weight)
         const hostPath = `${getHostname(url)} ${url}`.toLowerCase();
         const domainRules = [
           { folder: 'AI 架构', re: /(anthropic|openai|arxiv|huggingface|deepseek|groq|langchain|llama)/ },
@@ -1070,7 +1106,6 @@
           if (dr.re.test(hostPath)) addScore(dr.folder, 0.35);
         });
 
-        // Method 2: Weighted TF-IDF cosine similarity against existing folders (0.45 weight)
         const weightedTokens = [
           ...tokenize(title), ...tokenize(title), ...tokenize(title),
           ...tokenize(url),
@@ -1092,7 +1127,6 @@
           if (sim > 0.02) addScore(fName, sim * 0.45);
         });
 
-        // Method 3: Multi-keyword topic voting (0.20 weight)
         const lower = `${title} ${url} ${content}`.toLowerCase();
         const topicLexicon = [
           { folder: 'AI 架构', keys: ['agent', 'llm', 'rag', 'gpt', 'claude', 'gemini', 'prompt', '大模型', '智能体', '向量', 'webgpu', '推理'] },
@@ -1120,32 +1154,13 @@
       function localFallbackAnalyze(title, url, content, excludeId = null, preferredFolder = null) {
         const bestFolder = classifyBookmarkHybrid(title, url, content, excludeId, preferredFolder);
         const matchedTags = extractPreciseTags(title, url, content, bestFolder);
-
         const cleanTitle = polishBookmarkTitle(title, url);
         const oneLineSummary = toOneSentence(content, `收录自 ${getHostname(url)} 的「${bestFolder}」参考资料。`);
-
-        const inputFreq = toFreqMap(tokenize(`${title} ${content}`));
-        const scoredEdges = [];
-        state.bookmarks.forEach((b) => {
-          if (b.id === excludeId) return;
-          const bFreq = toFreqMap(tokenize(`${b.title} ${(b.tags || []).join(' ')} ${b.summary}`));
-          const sim = cosineSim(inputFreq, bFreq);
-          if (sim > 0.08) {
-            scoredEdges.push({
-              targetId: b.id,
-              relation: b.folder === bestFolder ? '同主题关联' : '跨目录共现',
-              weight: Math.min(0.95, 0.55 + sim)
-            });
-          }
-        });
-        scoredEdges.sort((a, b) => b.weight - a.weight);
-
         return {
           folder: bestFolder,
           title: cleanTitle,
           summary: oneLineSummary,
           tags: matchedTags.slice(0, 3),
-          edges: scoredEdges.slice(0, 2),
           engine: '本地引擎'
         };
       }
@@ -1199,7 +1214,6 @@
         return '';
       }
 
-      // Per-minute (60s sliding window) RPM usage helpers
       function getRPMTimestamps() {
         const now = Date.now();
         try {
@@ -1247,12 +1261,12 @@
         return safeMessages;
       }
 
-      async function callLLMChat({ endpoint, model, apiKey, provider = '', customHeader = '', messages, maxTokens = 800, timeoutMs = 25000 }) {
+      async function callLLMChat({ endpoint, model, apiKey, provider = '', customHeader = '', messages, maxTokens = 1200, timeoutMs = 25000 }) {
         const url = normalizeEndpoint(endpoint);
         if (!url) throw new Error('请先填写 API Endpoint');
         if (!String(model || '').trim()) throw new Error('请填写 Model 名称');
         messages = reserveLLMRequest(messages);
-        maxTokens = Math.min(Number(maxTokens || 800), Math.max(64, Number(state.settings.maxOutputTokens || 700)));
+        maxTokens = Math.min(Number(maxTokens || 1200), Math.max(64, Number(state.settings.maxOutputTokens || 1200)));
         const isOllama = provider === 'ollama' || /localhost|127\.0\.0\.1/.test(new URL(url).hostname);
         if (!isOllama && !String(apiKey || '').trim()) throw new Error('API Key 为空：请填写该服务商的 API Key');
 
@@ -1276,7 +1290,7 @@
             signal: ctrl.signal,
             body: JSON.stringify({
               model: String(model).trim(),
-              temperature: 0.2,
+              temperature: 0.1,
               max_tokens: maxTokens,
               messages
             })
@@ -1311,8 +1325,8 @@
         const box = document.getElementById('llm-test-result');
         const btn = document.getElementById('btn-test-llm');
 
-        box.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-800', 'dark:bg-emerald-950/40', 'dark:border-emerald-800', 'dark:text-emerald-300', 'bg-rose-50', 'border-rose-200', 'text-rose-800', 'dark:bg-rose-950/40', 'dark:border-rose-800', 'dark:text-rose-300');
-        box.classList.add('bg-slate-50', 'border-slate-200', 'text-slate-600', 'dark:bg-slate-900', 'dark:border-slate-700', 'dark:text-slate-300');
+        box.classList.remove('hidden', 'bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400', 'bg-rose-500/10', 'border-rose-500/30', 'text-rose-400');
+        box.classList.add('bg-slate-500/10', 'border-slate-500/30', 'text-slate-400');
         box.textContent = `正在探测 ${endpoint || '未填写地址'} ...`;
         btn.disabled = true;
 
@@ -1329,8 +1343,8 @@
             messages: [{ role: 'user', content: 'Reply with OK only.' }]
           });
           const ms = Math.round(performance.now() - t0);
-          box.classList.remove('bg-slate-50', 'border-slate-200', 'text-slate-600', 'dark:bg-slate-900', 'dark:border-slate-700', 'dark:text-slate-300');
-          box.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-800', 'dark:bg-emerald-950/40', 'dark:border-emerald-800', 'dark:text-emerald-300');
+          box.classList.remove('bg-slate-500/10', 'border-slate-500/30', 'text-slate-400');
+          box.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');
           box.textContent = `✓ 连接成功 (${ms}ms) · ${normalizedUrl} · 回复: ${content.trim().slice(0, 40)}`;
           state.settings.endpoint = normalizedUrl;
           state.settings.model = model;
@@ -1340,14 +1354,15 @@
           syncSettingsUI();
         } catch (err) {
           const ms = Math.round(performance.now() - t0);
-          box.classList.remove('bg-slate-50', 'border-slate-200', 'text-slate-600', 'dark:bg-slate-900', 'dark:border-slate-700', 'dark:text-slate-300');
-          box.classList.add('bg-rose-50', 'border-rose-200', 'text-rose-800', 'dark:bg-rose-950/40', 'dark:border-rose-800', 'dark:text-rose-300');
+          box.classList.remove('bg-slate-500/10', 'border-slate-500/30', 'text-slate-400');
+          box.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-400');
           box.textContent = `✕ 连接失败 (${ms}ms)：${err.message}`;
         } finally {
           btn.disabled = false;
         }
       }
 
+      // Single-item AI classification
       async function analyzeWithLLM(title, url, content, excludeId = null) {
         const { endpoint, model, apiKey, provider, customHeader } = state.settings;
         const hasKey = Boolean(apiKey && apiKey.trim());
@@ -1358,12 +1373,12 @@
         }
 
         const existingFolders = getAllFolderNames();
-        const systemPrompt = `你是一个专业书签整理引擎。请根据网页标题、URL和正文，输出严格 JSON 对象（不要包含 Markdown 代码块）：
+        const systemPrompt = `你是高精度书签分类引擎。根据网页标题、URL与正文，输出严格 JSON（不要代码块）：
 {
-  "folder": "建议文件夹（优先复用：${existingFolders.join('、') || '无'}）",
-  "title": "极简中文名称（不超过16字，直击核心）",
-  "summary": "严格一句话简介（不超过36字，精准说明核心价值）",
-  "tags": ["标签1", "标签2", "标签3"]
+  "folder": "最准确的收藏夹名（优先复用：${existingFolders.join('、') || '无'}；若均不合适请自动新建简短中文分类名）",
+  "title": "极简中文名称（不超过18字，不加类别前缀）",
+  "summary": "严格一句话简介（不超过36字，精准说明核心内容与来源价值）",
+  "tags": ["精准标签1", "精准标签2", "精准标签3"]
 }`;
 
         try {
@@ -1373,11 +1388,11 @@
             apiKey,
             provider,
             customHeader,
-            maxTokens: 500,
-            timeoutMs: 25000,
+            maxTokens: 450,
+            timeoutMs: 20000,
             messages: [
               { role: 'system', content: systemPrompt },
-              { role: 'user', content: `标题：${title}\nURL：${url}\n正文：${(content || '').slice(0, 3000)}` }
+              { role: 'user', content: `标题：${title}\nURL：${url}\n正文：${(content || '').slice(0, 2200)}` }
             ]
           });
 
@@ -1390,14 +1405,114 @@
             folder: finalFolder,
             title: polishBookmarkTitle(parsed.title || title, url),
             summary: toOneSentence(String(parsed.summary || ''), `收录自 ${getHostname(url)} 的参考资料。`),
-            tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 3).map(String) : ['网页'],
-            edges: [],
+            tags: Array.isArray(parsed.tags) && parsed.tags.length ? parsed.tags.slice(0, 3).map(String) : extractPreciseTags(title, url, content, finalFolder),
             engine: `LLM · ${model}`
           };
         } catch (err) {
           showToast(`LLM 调用降级 (${err.message})`, 'warning');
           return localFallbackAnalyze(title, url, content, excludeId);
         }
+      }
+
+      function safeParseBatchJSON(rawText) {
+        const cleaned = String(rawText || '')
+          .replace(/```(?:json)?\s*/gi, '')
+          .replace(/```/g, '')
+          .replace(/,\s*([\]}])/g, '$1')
+          .trim();
+
+        // 1) Try standard JSON parse on array or object wrapper
+        const arrMatch = cleaned.match(/\[[\s\S]*\]/);
+        if (arrMatch) {
+          try {
+            const parsed = JSON.parse(arrMatch[0]);
+            if (Array.isArray(parsed)) return parsed;
+          } catch (_) {}
+        }
+        try {
+          const obj = JSON.parse(cleaned);
+          if (Array.isArray(obj)) return obj;
+          if (obj && Array.isArray(obj.items)) return obj.items;
+        } catch (_) {}
+
+        // 2) Fault-tolerant object-by-object extraction (isolates single-item quote errors)
+        const recovered = [];
+        const objMatches = cleaned.match(/\{[^{}]*\}/g) || [];
+        objMatches.forEach((chunk) => {
+          const fixed = chunk.replace(/,\s*}/g, '}').replace(/[\r\n]+/g, ' ');
+          try {
+            const item = JSON.parse(fixed);
+            if (item && item.id) recovered.push(item);
+          } catch (_) {
+            // Regex field fallback for unescaped inner quotes
+            const idM = fixed.match(/"id"\s*:\s*"([^"]+)"/);
+            if (idM) {
+              const fM = fixed.match(/"folder"\s*:\s*"([^"]+)"/);
+              const tM = fixed.match(/"title"\s*:\s*"([^"]+)"/);
+              const sM = fixed.match(/"summary"\s*:\s*"([^"]+)"/);
+              const tagsM = fixed.match(/"tags"\s*:\s*\[([^\]]*)\]/);
+              const tags = tagsM ? (tagsM[1].match(/"([^"]+)"/g) || []).map((x) => x.replace(/"/g, '')) : [];
+              recovered.push({
+                id: idM[1],
+                folder: fM ? fM[1] : undefined,
+                title: tM ? tM[1] : undefined,
+                summary: sM ? sM[1] : undefined,
+                tags
+              });
+            }
+          }
+        });
+        if (recovered.length > 0) return recovered;
+        throw new Error('批量返回 JSON 解析失败');
+      }
+
+      // High-speed 8x Batched AI Classification (packs up to 8 bookmarks per API request)
+      async function batchAnalyzeWithLLM(items) {
+        const { endpoint, model, apiKey, provider, customHeader } = state.settings;
+        const existingFolders = getAllFolderNames();
+        const compactList = items.map((b) => ({
+          id: b.id,
+          title: b.title,
+          url: b.url,
+          host: getHostname(b.url),
+          snippet: (b.excerpt || b.summary || '').slice(0, 180)
+        }));
+
+        const systemPrompt = `你是高精度书签批量分类引擎。请一次性为下方所有书签分配最合适的收藏夹（优先复用已有目录：${existingFolders.join('、') || '无'}；若不匹配可新建简短目录名，并尽量合并同类目录），提炼简洁中文名称（不加类别前缀）、严格一句话简介和2-3个精准标签。
+重要规则：JSON 字符串内部严禁出现英文双引号(")，如需引号请用中文「」替代。
+只输出严格 JSON 数组（不要 Markdown 代码块）：
+[{"id":"原id","folder":"收藏夹名","title":"简洁名称","summary":"一句话简介","tags":["标签1","标签2"]}]`;
+
+        const { content: rawText } = await callLLMChat({
+          endpoint,
+          model,
+          apiKey,
+          provider,
+          customHeader,
+          maxTokens: 1600,
+          timeoutMs: 28000,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: JSON.stringify(compactList) }
+          ]
+        });
+
+        const parsedArr = safeParseBatchJSON(rawText);
+        const resMap = new Map();
+        parsedArr.forEach((row) => {
+          if (row && row.id) resMap.set(row.id, row);
+        });
+        return resMap;
+      }
+
+      function pruneEmptyFoldersAfterAI() {
+        const activeFolders = new Set(state.bookmarks.map((b) => b.folder));
+        const before = state.customFolders.length;
+        state.customFolders = state.customFolders.filter((f) => activeFolders.has(f));
+        if (state.customFolders.length !== before) {
+          saveCustomFolders(state.customFolders);
+        }
+        return Math.max(0, before - state.customFolders.length);
       }
 
       async function processAndSaveClip({ title, url, content }) {
@@ -1419,7 +1534,6 @@
             url,
             summary: result.summary,
             tags: result.tags,
-            edges: result.edges,
             excerpt: (content || '').slice(0, 500),
             createdAt: Date.now(),
             engine: result.engine
@@ -1427,6 +1541,10 @@
 
           await dbPut(newItem);
           state.bookmarks.unshift(newItem);
+          if (!state.customFolders.includes(newItem.folder)) {
+            state.customFolders.push(newItem.folder);
+            saveCustomFolders(state.customFolders);
+          }
           state.selectedFolder = newItem.folder;
           state.selectedBookmarkId = newItem.id;
 
@@ -1453,7 +1571,7 @@
           showToast('正在停止批量精排...', 'info');
           return;
         }
-        const { apiKey, provider, endpoint, rpmLimit } = state.settings;
+        const { apiKey, provider, endpoint, rpmLimit, model } = state.settings;
         const hasKey = Boolean(apiKey && apiKey.trim()) || provider === 'ollama' || (endpoint && endpoint.includes('11434'));
         if (!hasKey) {
           showToast('请先在模型设置中填入 API Key 或配置 Ollama', 'warning');
@@ -1463,44 +1581,65 @@
         const targets = state.bookmarks.filter((b) => b.engine === '本地引擎');
         if (targets.length === 0) return;
 
+        const BATCH_SIZE = 8;
+        const batches = [];
+        for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+          batches.push(targets.slice(i, i + BATCH_SIZE));
+        }
+
         const limit = Number(rpmLimit ?? 10);
-        const intervalMs = limit > 0 ? Math.ceil(60000 / limit) + 250 : 250;
+        const intervalMs = limit > 0 ? Math.ceil(60000 / limit) + 200 : 150;
         const labelEl = document.getElementById('rerun-local-label');
         state.isRerunning = true;
         state.cancelRerun = false;
 
         let updatedCount = 0;
-        for (let i = 0; i < targets.length; i++) {
+        for (let bIdx = 0; bIdx < batches.length; bIdx++) {
           if (state.cancelRerun) break;
-          const bm = targets[i];
-          labelEl.textContent = `精排 ${i + 1}/${targets.length} (点击停止)`;
-          const res = await analyzeWithLLM(bm.title, bm.url, bm.excerpt || bm.summary, bm.id);
-          if (res.engine !== '本地引擎') {
-            bm.folder = res.folder;
-            bm.title = res.title;
-            bm.summary = res.summary;
-            bm.tags = res.tags;
-            bm.engine = res.engine;
-            await dbPut(bm);
-            updatedCount++;
+          const chunk = batches[bIdx];
+          labelEl.textContent = `批量精排 ${bIdx + 1}/${batches.length} 批 (${chunk.length}条)`;
+
+          try {
+            const resMap = await batchAnalyzeWithLLM(chunk);
+            const changed = [];
+            chunk.forEach((bm) => {
+              const r = resMap.get(bm.id);
+              if (r) {
+                const folder = normalizeFolderName(r.folder || bm.folder);
+                bm.folder = folder;
+                bm.title = polishBookmarkTitle(r.title || bm.title, bm.url);
+                bm.summary = toOneSentence(r.summary || bm.summary, bm.summary);
+                bm.tags = Array.isArray(r.tags) && r.tags.length ? r.tags.slice(0, 3).map(String) : bm.tags;
+                bm.engine = `LLM · ${model}`;
+                changed.push(bm);
+                updatedCount++;
+              }
+            });
+            if (changed.length) await dbPutBatch(changed);
             renderSidebar();
             renderFolderView();
+          } catch (err) {
+            showToast(`第 ${bIdx + 1} 批跳过 (${err.message})，继续下一批`, 'warning');
           }
-          if (i < targets.length - 1 && !state.cancelRerun) {
+
+          if (bIdx < batches.length - 1 && !state.cancelRerun) {
             const sec = Math.ceil(intervalMs / 1000);
             for (let sLeft = sec; sLeft > 0; sLeft--) {
               if (state.cancelRerun) break;
-              labelEl.textContent = `精排 ${i + 1}/${targets.length} · 等 ${sLeft}s`;
+              labelEl.textContent = `第 ${bIdx + 1}/${batches.length} 批 · 等 ${sLeft}s`;
               await sleepMs(1000);
             }
           }
         }
 
+        const pruned = pruneEmptyFoldersAfterAI();
         state.isRerunning = false;
         state.cancelRerun = false;
         renderAll();
         if (state.selectedBookmarkId) openBookmarkDrawer(state.selectedBookmarkId);
-        showToast(updatedCount > 0 ? `已完成 ${updatedCount} 条书签精排（按 ${limit || '不限'} RPM 节流）` : '批量精排已停止或未更新', updatedCount > 0 ? 'success' : 'warning');
+        if (updatedCount > 0) {
+          showToast(`批量精排完成：更新 ${updatedCount} 条${pruned ? `，自动清理 ${pruned} 个空收藏夹` : ''}`, 'success');
+        }
       }
 
       // =========================================================================
@@ -1639,6 +1778,7 @@
               ...raw,
               id: raw.id || ('bm-' + Date.now().toString(36) + '-' + idx),
               folder: raw.folder || '综合资料',
+              title: polishBookmarkTitle(raw.title, raw.url),
               summary: toOneSentence(raw.summary, ''),
               createdAt: raw.createdAt || Date.now() - idx * 1000
             });
@@ -1652,7 +1792,6 @@
               url: raw.url,
               summary: analyzed.summary,
               tags: raw.tags || analyzed.tags,
-              edges: analyzed.edges,
               excerpt: raw.excerpt || '',
               createdAt: Date.now() - idx * 1000,
               engine: '本地引擎'
@@ -1671,7 +1810,7 @@
       }
 
       // =========================================================================
-      // 9. Institutional Directory Sidebar, Table View & Tag/Delete Actions
+      // 9. Sidebar, Table View (Draggable Rows), Command Palette & Detail Drawer
       // =========================================================================
       function getFilteredBookmarks() {
         const q = state.searchQuery.trim().toLowerCase();
@@ -1693,7 +1832,7 @@
         const label = document.getElementById('rerun-local-label');
         if (localCount > 0) {
           btn.classList.remove('hidden');
-          label.textContent = `待精排 ${localCount}`;
+          if (!state.isRerunning) label.textContent = `待精排 ${localCount}`;
         } else {
           btn.classList.add('hidden');
         }
@@ -1714,12 +1853,12 @@
         document.getElementById('sidebar-stats').textContent = `${folderMap.size} 收藏夹 · ${filtered.length} 条`;
 
         let html = `
-          <div class="flex items-center justify-between px-2.5 py-2 mb-1 rounded-lg cursor-pointer transition-colors ${state.selectedFolder === null ? 'bg-slate-900 text-white dark:bg-indigo-600' : 'hover:bg-slate-100 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-200'}" data-select-all="true">
+          <div class="flex items-center justify-between px-2.5 py-2 mb-1 rounded-[10px] cursor-pointer transition-colors duration-150 ${state.selectedFolder === null ? 'bg-slate-900 text-white dark:bg-white/[0.09] dark:text-white linear-surface' : 'hover:bg-slate-100 dark:hover:bg-white/[0.04] text-slate-700 dark:text-slate-300'}" data-select-all="true">
             <div class="flex items-center gap-2 text-xs font-medium">
-              <i data-lucide="folder-kanban" class="w-3.5 h-3.5 opacity-90"></i>
+              <i data-lucide="folder-kanban" class="w-3.5 h-3.5 text-indigo-400"></i>
               <span>全部收藏</span>
             </div>
-            <span class="text-[11px] font-mono tabular-nums opacity-80">${filtered.length}</span>
+            <span class="text-[11px] font-mono tabular-nums opacity-75">${filtered.length}</span>
           </div>
         `;
 
@@ -1728,7 +1867,7 @@
           const isEditing = state.editingFolder === folderName;
           const color = getFolderColor(folderName);
           const preview = items.slice(0, 8).map((b, i) => `
-            <div class="flex items-center gap-2 py-1 border-b border-slate-100 dark:border-slate-800 last:border-0">
+            <div class="flex items-center gap-2 py-1 border-b border-slate-100 dark:border-white/[0.06] last:border-0">
               <span class="text-slate-400 font-mono text-[10px] w-3.5 shrink-0">${i + 1}</span>
               <span class="truncate text-slate-700 dark:text-slate-200">${escapeHtml(b.title)}</span>
             </div>
@@ -1736,36 +1875,36 @@
 
           if (isEditing) {
             html += `
-              <div class="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-700">
+              <div class="flex items-center gap-1 px-2 py-1.5 rounded-[10px] bg-indigo-500/10 border border-indigo-500/40">
                 <i data-lucide="folder-open" class="w-3.5 h-3.5 shrink-0" style="color:${color}"></i>
-                <input id="sidebar-rename-input" type="text" value="${escapeHtml(folderName)}" class="flex-1 min-w-0 px-1.5 py-0.5 text-xs rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none" />
-                <button type="button" data-save-rename="${escapeHtml(folderName)}" class="p-1 rounded text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50" title="保存"><i data-lucide="check" class="w-3 h-3"></i></button>
-                <button type="button" data-cancel-rename="true" class="p-1 rounded text-slate-400 hover:text-slate-600" title="取消"><i data-lucide="x" class="w-3 h-3"></i></button>
+                <input id="sidebar-rename-input" type="text" value="${escapeHtml(folderName)}" class="flex-1 min-w-0 px-1.5 py-0.5 text-xs rounded bg-white dark:bg-[#0c0e14] border border-slate-200 dark:border-white/[0.1] outline-none" />
+                <button type="button" data-save-rename="${escapeHtml(folderName)}" class="p-1 rounded text-emerald-500 hover:bg-emerald-500/10" title="保存"><i data-lucide="check" class="w-3 h-3"></i></button>
+                <button type="button" data-cancel-rename="true" class="p-1 rounded text-slate-400 hover:text-slate-200" title="取消"><i data-lucide="x" class="w-3 h-3"></i></button>
               </div>
             `;
           } else {
             html += `
               <div class="folder-hover-wrap group relative" data-folder-hover-wrap="${escapeHtml(folderName)}">
-                <div class="flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${selected ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-200 font-medium border-l-2 border-indigo-600' : 'hover:bg-slate-100/80 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'}" data-folder-row="${escapeHtml(folderName)}">
+                <div class="flex items-center justify-between px-2.5 py-2 rounded-[10px] cursor-pointer border border-transparent transition-all duration-150 ${selected ? 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-200 font-medium border-indigo-500/30' : 'hover:bg-slate-100/80 dark:hover:bg-white/[0.04] text-slate-700 dark:text-slate-300'}" data-folder-row="${escapeHtml(folderName)}">
                   <div class="flex items-center gap-2 min-w-0 flex-1">
                     <i data-lucide="${selected ? 'folder-open' : 'folder'}" class="w-3.5 h-3.5 shrink-0" style="color:${color}"></i>
                     <span class="text-xs truncate">${escapeHtml(folderName)}</span>
                   </div>
                   <div class="flex items-center gap-0.5 shrink-0">
                     <div class="hidden group-hover:flex items-center gap-0.5 mr-1">
-                      <button type="button" data-rename-folder="${escapeHtml(folderName)}" class="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-white dark:hover:bg-slate-800" title="重命名收藏夹">
+                      <button type="button" data-rename-folder="${escapeHtml(folderName)}" class="p-1 rounded text-slate-400 hover:text-indigo-400 hover:bg-white/10" title="重命名收藏夹">
                         <i data-lucide="pencil" class="w-3 h-3"></i>
                       </button>
-                      <button type="button" data-delete-folder="${escapeHtml(folderName)}" class="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-white dark:hover:bg-slate-800" title="删除收藏夹">
+                      <button type="button" data-delete-folder="${escapeHtml(folderName)}" class="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-white/10" title="删除收藏夹">
                         <i data-lucide="trash-2" class="w-3 h-3"></i>
                       </button>
                     </div>
-                    <span class="text-[11px] font-mono tabular-nums text-slate-400">${items.length}</span>
+                    <span class="text-[11px] font-mono tabular-nums text-slate-400 dark:text-slate-500">${items.length}</span>
                   </div>
                 </div>
                 ${items.length ? `
-                  <div class="folder-hover-card hidden absolute left-[calc(100%+8px)] top-0 z-40 w-64 max-h-64 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#111827] shadow-xl p-2.5 text-[11px]">
-                    <div class="flex items-center justify-between mb-1.5 pb-1 border-b border-slate-100 dark:border-slate-800">
+                  <div class="folder-hover-card hidden absolute left-[calc(100%+8px)] top-0 z-40 w-64 max-h-64 overflow-y-auto rounded-[10px] border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#11141d] shadow-2xl p-2.5 text-[11px]">
+                    <div class="flex items-center justify-between mb-1.5 pb-1 border-b border-slate-100 dark:border-white/[0.07]">
                       <strong class="text-slate-900 dark:text-slate-100">${escapeHtml(folderName)}</strong>
                       <span class="text-slate-400 font-mono">${items.length}</span>
                     </div>
@@ -1790,88 +1929,90 @@
         const filtered = getFilteredBookmarks();
         const items = state.selectedFolder ? filtered.filter((b) => b.folder === state.selectedFolder) : filtered;
         const heading = state.selectedFolder || '全部收藏';
-        const folderCount = new Set(state.bookmarks.map((b) => b.folder)).size;
+        const folderCount = getAllFolderNames().length;
         const tagCount = new Set(state.bookmarks.flatMap((b) => b.tags || [])).size;
         const rpmUsed = getRPMTimestamps().length;
         const rpmLimit = Number(state.settings.rpmLimit ?? 10);
 
         const rows = items.map((b, i) => `
-          <tr class="group border-t border-slate-100 dark:border-slate-800/80 hover:bg-slate-50/90 dark:hover:bg-slate-800/35 transition-colors cursor-pointer" data-open-bookmark="${escapeHtml(b.id)}">
-            <td class="px-3 py-3 text-[11px] font-mono text-slate-400 tabular-nums align-middle w-10">${String(i + 1).padStart(2, '0')}</td>
+          <tr draggable="true" data-drag-bookmark="${escapeHtml(b.id)}" data-open-bookmark="${escapeHtml(b.id)}" class="group border-t border-slate-100 dark:border-white/[0.06] hover:bg-slate-50/90 dark:hover:bg-white/[0.025] transition-colors duration-150 cursor-pointer">
+            <td class="px-3 py-2.5 text-[11px] font-mono text-slate-400 dark:text-slate-500 tabular-nums align-middle w-12">
+              <span class="inline-flex items-center gap-1">
+                <i data-lucide="grip-vertical" class="w-3 h-3 opacity-0 group-hover:opacity-60 cursor-grab shrink-0"></i>
+                <span>${String(i + 1).padStart(2, '0')}</span>
+              </span>
+            </td>
             <td class="px-3 py-2.5 align-middle w-[20%]">
-              <div class="font-medium text-xs text-slate-900 dark:text-slate-100 truncate" title="${escapeHtml(b.title || '未命名')}">${escapeHtml(b.title || '未命名')}</div>
-              <div class="mt-0.5 flex items-center gap-1.5 text-[10px] text-slate-400">
+              <div class="font-medium text-xs text-slate-900 dark:text-slate-100 truncate tracking-[-0.01em]" title="${escapeHtml(b.title || '未命名')}">${escapeHtml(b.title || '未命名')}</div>
+              <div class="mt-0.5 flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
                 <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:${getFolderColor(b.folder)}"></span>
                 <span class="truncate">${escapeHtml(b.folder || '未分类')}</span>
               </div>
             </td>
-            <td class="px-3 py-2.5 align-middle w-[23%]">
+            <td class="px-3 py-2.5 align-middle w-[22%]">
               <div class="flex flex-nowrap items-center gap-1 overflow-x-auto whitespace-nowrap">
                 ${(b.tags || []).map((t) => `
-                  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] leading-none text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 shrink-0 whitespace-nowrap">
+                  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-[10px] leading-none text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/[0.06] shrink-0 whitespace-nowrap">
                     <span>${escapeHtml(t)}</span>
-                    <button type="button" data-remove-tag="${escapeHtml(t)}" data-bm-id="${escapeHtml(b.id)}" class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 leading-none" title="删除标签">×</button>
+                    <button type="button" data-remove-tag="${escapeHtml(t)}" data-bm-id="${escapeHtml(b.id)}" class="text-slate-400 hover:text-rose-400 leading-none" title="删除标签">×</button>
                   </span>
-                `).join('') || '<span class="text-[11px] text-slate-300">—</span>'}
+                `).join('') || '<span class="text-[11px] text-slate-500">—</span>'}
               </div>
             </td>
-            <td class="px-3 py-3 align-middle w-[16%]">
+            <td class="px-3 py-2.5 align-middle w-[16%]">
               <a href="${escapeHtml(b.url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-xs font-mono text-indigo-600 dark:text-indigo-400 hover:underline max-w-full" title="${escapeHtml(b.url)}">
                 <span class="truncate">${escapeHtml(getHostname(b.url))}</span>
                 <i data-lucide="arrow-up-right" class="w-3 h-3 shrink-0"></i>
               </a>
             </td>
-            <td class="px-3 py-3 align-middle w-[32%] text-xs text-slate-600 dark:text-slate-300 truncate" title="${escapeHtml(b.summary)}">
+            <td class="px-3 py-2.5 align-middle w-[32%] text-xs text-slate-600 dark:text-slate-400 truncate" title="${escapeHtml(b.summary)}">
               ${escapeHtml(toOneSentence(b.summary, '暂无一句话简介。'))}
             </td>
-            <td class="px-3 py-3 align-middle text-right w-16">
-              <button type="button" data-delete-row="${escapeHtml(b.id)}" class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors" title="删除书签">
+            <td class="px-3 py-2.5 align-middle text-right w-14">
+              <button type="button" data-delete-row="${escapeHtml(b.id)}" class="inline-flex items-center justify-center p-1.5 rounded-md text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors duration-150" title="删除书签">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                <span class="hidden 2xl:inline">删除</span>
               </button>
             </td>
           </tr>
         `).join('');
 
         container.innerHTML = `
-          <!-- Institutional Header + Telemetry Strip -->
           <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <div class="text-[10px] font-mono uppercase tracking-[0.18em] text-slate-400">NEXUSCLIP · KNOWLEDGE ARCHIVE</div>
-              <h1 class="mt-1 text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">${escapeHtml(heading)}</h1>
+              <h1 class="text-xl sm:text-2xl font-semibold tracking-[-0.025em] text-slate-900 dark:text-white">${escapeHtml(heading)}</h1>
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">支持将任意行直接拖拽至左侧收藏夹，或按 <span class="font-mono text-indigo-400">⌘K</span> 快速调度</p>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div class="px-3 py-2 rounded-xl bg-white dark:bg-[#0d131f] border border-slate-200/80 dark:border-slate-800">
-                <div class="text-[10px] text-slate-400">当前视图</div>
+              <div class="px-3 py-2 rounded-[10px] bg-white dark:bg-[#11141d] border border-slate-200/80 dark:border-white/[0.08] linear-surface">
+                <div class="text-[10px] text-slate-400 dark:text-slate-500">当前视图</div>
                 <div class="text-sm font-semibold font-mono tabular-nums text-slate-900 dark:text-white mt-0.5">${items.length} 条</div>
               </div>
-              <div class="px-3 py-2 rounded-xl bg-white dark:bg-[#0d131f] border border-slate-200/80 dark:border-slate-800">
-                <div class="text-[10px] text-slate-400">目录数</div>
+              <div class="px-3 py-2 rounded-[10px] bg-white dark:bg-[#11141d] border border-slate-200/80 dark:border-white/[0.08] linear-surface">
+                <div class="text-[10px] text-slate-400 dark:text-slate-500">收藏夹</div>
                 <div class="text-sm font-semibold font-mono tabular-nums text-slate-900 dark:text-white mt-0.5">${folderCount} 个</div>
               </div>
-              <div class="px-3 py-2 rounded-xl bg-white dark:bg-[#0d131f] border border-slate-200/80 dark:border-slate-800">
-                <div class="text-[10px] text-slate-400">标签索引</div>
+              <div class="px-3 py-2 rounded-[10px] bg-white dark:bg-[#11141d] border border-slate-200/80 dark:border-white/[0.08] linear-surface">
+                <div class="text-[10px] text-slate-400 dark:text-slate-500">标签索引</div>
                 <div class="text-sm font-semibold font-mono tabular-nums text-slate-900 dark:text-white mt-0.5">${tagCount} 个</div>
               </div>
-              <div class="px-3 py-2 rounded-xl bg-white dark:bg-[#0d131f] border border-slate-200/80 dark:border-slate-800">
-                <div class="text-[10px] text-slate-400">RPM 频率</div>
+              <div class="px-3 py-2 rounded-[10px] bg-white dark:bg-[#11141d] border border-slate-200/80 dark:border-white/[0.08] linear-surface">
+                <div class="text-[10px] text-slate-400 dark:text-slate-500">RPM 频率</div>
                 <div class="text-sm font-semibold font-mono tabular-nums text-indigo-600 dark:text-indigo-400 mt-0.5">${rpmLimit === 0 ? `${rpmUsed}/∞` : `${rpmUsed}/${rpmLimit}`}</div>
               </div>
             </div>
           </div>
 
-          <!-- High-Craft Data Table -->
-          <div class="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-[#0d131f] shadow-sm overflow-hidden">
+          <div class="rounded-[10px] border border-slate-200/90 dark:border-white/[0.08] bg-white dark:bg-[#11141d] linear-surface overflow-hidden">
             <div class="overflow-x-auto">
               <table class="w-full min-w-[680px] table-fixed border-collapse text-left">
                 <thead>
-                  <tr class="bg-slate-50/90 dark:bg-slate-900/60 border-b border-slate-200/70 dark:border-slate-800 text-[10px] font-mono uppercase tracking-wider text-slate-400">
-                    <th class="px-3 py-2.5 w-10 font-semibold">#</th>
+                  <tr class="bg-slate-50/90 dark:bg-white/[0.02] border-b border-slate-200/70 dark:border-white/[0.07] text-[10px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    <th class="px-3 py-2.5 w-12 font-semibold">#</th>
                     <th class="px-3 py-2.5 w-[20%] font-semibold">名称</th>
-                    <th class="px-3 py-2.5 w-[22%] font-semibold">标签（点击 × 删除）</th>
+                    <th class="px-3 py-2.5 w-[22%] font-semibold">标签（× 删除）</th>
                     <th class="px-3 py-2.5 w-[16%] font-semibold">来源</th>
                     <th class="px-3 py-2.5 w-[32%] font-semibold">一句话简介</th>
-                    <th class="px-3 py-2.5 w-16 text-right font-semibold">删除</th>
+                    <th class="px-3 py-2.5 w-14 text-right font-semibold">删除</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1879,9 +2020,9 @@
                 </tbody>
               </table>
             </div>
-            <div class="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 bg-slate-50/40 dark:bg-slate-900/20">
-              <span>显示 ${items.length} 条记录 · 点击任意行查看与编辑详情</span>
-              <span class="font-mono">LOCAL-FIRST · INDEXEDDB</span>
+            <div class="px-4 py-2.5 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+              <span>显示 ${items.length} 条记录 · 拖拽行至左侧收藏夹可即时归档</span>
+              <span class="font-mono">INLIST · LOCAL-FIRST</span>
             </div>
           </div>
         `;
@@ -1905,50 +2046,56 @@
 
         content.innerHTML = `
           <div class="space-y-1.5">
-            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">名称（可编辑）</label>
-            <input id="drawer-edit-title" type="text" value="${escapeHtml(bm.title)}" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
-            <a href="${escapeHtml(bm.url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] font-mono text-indigo-600 dark:text-indigo-400 hover:underline break-all">
-              <span>${escapeHtml(bm.url)}</span>
-              <i data-lucide="external-link" class="w-3 h-3 shrink-0"></i>
-            </a>
+            <label class="block text-[10px] font-mono uppercase tracking-wider text-slate-400">名称（可编辑）</label>
+            <input id="drawer-edit-title" type="text" value="${escapeHtml(bm.title)}" class="w-full px-2.5 py-1.5 rounded-[8px] border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#0c0e14] text-sm font-semibold text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
           </div>
 
-          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-2">
+          <div class="space-y-1.5">
+            <label class="block text-[10px] font-mono uppercase tracking-wider text-slate-400">来源 URL（可编辑）</label>
+            <div class="flex items-center gap-1.5">
+              <input id="drawer-edit-url" type="url" value="${escapeHtml(bm.url)}" class="flex-1 px-2.5 py-1.5 rounded-[8px] border border-slate-200 dark:border-white/[0.08] bg-slate-50 dark:bg-[#0c0e14] font-mono text-[11px] text-indigo-500 dark:text-indigo-400 outline-none focus:border-indigo-500" />
+              <a href="${escapeHtml(bm.url)}" target="_blank" rel="noopener noreferrer" class="p-1.5 rounded-[8px] border border-slate-200 dark:border-white/[0.08] text-slate-400 hover:text-indigo-400" title="在新标签页打开">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              </a>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-[10px] bg-slate-50 dark:bg-[#0c0e14] border border-slate-200/70 dark:border-white/[0.07] space-y-2">
             <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">归属收藏夹</label>
-            <select id="drawer-folder-select" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500">
+            <select id="drawer-folder-select" class="w-full px-2.5 py-1.5 rounded-[8px] border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#131620] text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500">
               ${folders.map((f) => `<option value="${escapeHtml(f)}" ${f === bm.folder ? 'selected' : ''}>${escapeHtml(f)}</option>`).join('')}
               <option value="__NEW__">+ 新建收藏夹...</option>
             </select>
             <div id="drawer-new-folder-wrap" class="hidden flex gap-1.5 pt-1">
-              <input id="drawer-new-folder-input" type="text" placeholder="输入新收藏夹名称" class="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs outline-none focus:border-indigo-500" />
-              <button id="btn-confirm-new-folder" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-900 dark:bg-indigo-600 text-white text-xs font-medium">确定</button>
+              <input id="drawer-new-folder-input" type="text" placeholder="输入新收藏夹名称" class="flex-1 px-2.5 py-1.5 rounded-[8px] border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#131620] text-xs outline-none focus:border-indigo-500" />
+              <button id="btn-confirm-new-folder" type="button" class="px-2.5 py-1.5 rounded-[8px] bg-indigo-600 text-white text-xs font-medium">确定</button>
             </div>
           </div>
 
-          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-1.5">
+          <div class="p-3 rounded-[10px] bg-slate-50 dark:bg-[#0c0e14] border border-slate-200/70 dark:border-white/[0.07] space-y-2">
             <div class="flex items-center justify-between">
-              <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">来源说明（一句话简介，可编辑）</label>
-              <span class="text-[10px] font-mono ${bm.engine === '本地引擎' ? 'text-amber-500' : 'text-slate-400'}">${escapeHtml(bm.engine || '本地引擎')}</span>
+              <label class="text-[10px] font-mono uppercase tracking-wider text-slate-400">一句话简介（可编辑）</label>
+              <span class="text-[10px] font-mono ${bm.engine === '本地引擎' ? 'text-amber-400' : 'text-slate-500'}">${escapeHtml(bm.engine || '本地引擎')}</span>
             </div>
-            <textarea id="drawer-edit-summary" rows="2" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs leading-relaxed text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500 resize-none">${escapeHtml(bm.summary || '')}</textarea>
+            <textarea id="drawer-edit-summary" rows="2" class="w-full px-2.5 py-1.5 rounded-[8px] border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#131620] text-xs leading-relaxed text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500 resize-none">${escapeHtml(bm.summary || '')}</textarea>
             <div class="flex justify-end">
-              <button id="btn-save-bookmark-meta" type="button" class="px-3 py-1 rounded-lg bg-slate-900 dark:bg-indigo-600 text-white text-[11px] font-medium hover:opacity-90">保存名称与说明</button>
+              <button id="btn-save-bookmark-meta" type="button" class="px-3 py-1 rounded-[8px] bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium transition-colors">保存名称 / 来源 / 简介</button>
             </div>
           </div>
 
           <div class="space-y-2">
-            <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">标签管理（点击标签可编辑，× 删除）</div>
+            <div class="text-[10px] font-mono uppercase tracking-wider text-slate-400">标签管理（点击标签可改，× 删除）</div>
             <div class="flex flex-wrap gap-1.5">
               ${(bm.tags || []).map((t, idx) => `
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700">
-                  <button type="button" data-drawer-edit-tag-idx="${idx}" data-drawer-edit-tag="${escapeHtml(t)}" class="hover:text-indigo-600 dark:hover:text-indigo-400" title="点击修改标签">${escapeHtml(t)}</button>
-                  <button type="button" data-drawer-remove-tag="${escapeHtml(t)}" class="text-slate-400 hover:text-rose-600" title="删除标签">×</button>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-white/[0.08]">
+                  <button type="button" data-drawer-edit-tag-idx="${idx}" data-drawer-edit-tag="${escapeHtml(t)}" class="hover:text-indigo-400" title="点击修改标签">${escapeHtml(t)}</button>
+                  <button type="button" data-drawer-remove-tag="${escapeHtml(t)}" class="text-slate-400 hover:text-rose-400" title="删除标签">×</button>
                 </span>
               `).join('')}
             </div>
             <div class="flex gap-1.5 pt-1">
-              <input id="drawer-add-tag-input" type="text" placeholder="输入标签名按回车添加..." class="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs outline-none focus:border-indigo-500" />
-              <button id="btn-drawer-add-tag" type="button" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium">添加</button>
+              <input id="drawer-add-tag-input" type="text" placeholder="输入标签按回车添加..." class="flex-1 px-2.5 py-1.5 rounded-[8px] border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-[#0c0e14] text-xs outline-none focus:border-indigo-500" />
+              <button id="btn-drawer-add-tag" type="button" class="px-2.5 py-1.5 rounded-[8px] border border-slate-200 dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-white/[0.06] text-xs font-medium">添加</button>
             </div>
           </div>
         `;
@@ -2044,17 +2191,19 @@
         showToast(deleteBookmarks ? `已删除收藏夹「${folderName}」及其书签` : `已删除收藏夹「${folderName}」，书签移至未分类`, 'info');
       }
 
-      async function saveBookmarkMeta(bmId, newTitle, newSummary) {
+      async function saveBookmarkMeta(bmId, newTitle, newUrl, newSummary) {
         const bm = state.bookmarks.find((b) => b.id === bmId);
         if (!bm) return;
         const cleanTitle = String(newTitle || '').trim();
+        const cleanUrl = String(newUrl || '').trim();
         const cleanSummary = String(newSummary || '').trim();
         if (cleanTitle) bm.title = cleanTitle;
+        if (cleanUrl) bm.url = cleanUrl;
         bm.summary = cleanSummary;
         await dbPut(bm);
         renderAll();
         openBookmarkDrawer(bmId);
-        showToast('已保存书签名称与来源说明', 'success');
+        showToast('已保存名称、来源与简介', 'success');
       }
 
       async function moveBookmarkToFolder(bmId, newFolder) {
@@ -2068,9 +2217,8 @@
           saveCustomFolders(state.customFolders);
         }
         await dbPut(bm);
-        state.selectedFolder = clean;
         renderAll();
-        openBookmarkDrawer(bmId);
+        if (state.selectedBookmarkId === bmId) openBookmarkDrawer(bmId);
         showToast(`已移动至「${clean}」`, 'success');
       }
 
@@ -2081,7 +2229,82 @@
       }
 
       // =========================================================================
-      // 10. Settings UI, Custom Models & Event Wiring
+      // 10. ⌘K Command Palette
+      // =========================================================================
+      function openCommandPalette() {
+        const modal = document.getElementById('modal-cmd');
+        const panel = document.getElementById('cmd-panel');
+        const inp = document.getElementById('cmd-input');
+        modal.classList.remove('hidden');
+        inp.value = '';
+        renderCommandResults('');
+        requestAnimationFrame(() => {
+          panel.classList.remove('opacity-0', 'scale-95');
+          panel.classList.add('opacity-100', 'scale-100');
+          inp.focus();
+        });
+      }
+
+      function closeCommandPalette() {
+        const modal = document.getElementById('modal-cmd');
+        const panel = document.getElementById('cmd-panel');
+        panel.classList.remove('opacity-100', 'scale-100');
+        panel.classList.add('opacity-0', 'scale-95');
+        setTimeout(() => modal.classList.add('hidden'), 150);
+      }
+
+      function renderCommandResults(q) {
+        const container = document.getElementById('cmd-results');
+        const query = q.trim().toLowerCase();
+        const actions = [
+          { id: 'act-clip', label: '采集新网页', icon: 'plus', shortcut: 'C' },
+          { id: 'act-import', label: '导入多格式书签', icon: 'upload', shortcut: 'I' },
+          { id: 'act-rerun', label: 'AI 批量精排本地书签', icon: 'sparkles', shortcut: 'R' },
+          { id: 'act-settings', label: '打开 AI 模型与 RPM 设置', icon: 'sliders-horizontal', shortcut: 'S' }
+        ].filter((a) => !query || a.label.toLowerCase().includes(query));
+
+        const folders = getAllFolderNames()
+          .filter((f) => !query || f.toLowerCase().includes(query))
+          .slice(0, 5);
+
+        const bms = state.bookmarks
+          .filter((b) => !query || b.title.toLowerCase().includes(query) || b.url.toLowerCase().includes(query))
+          .slice(0, 6);
+
+        let html = '';
+        if (actions.length) {
+          html += `<div class="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400">快捷指令</div>`;
+          html += actions.map((a) => `
+            <button type="button" data-cmd-action="${a.id}" class="w-full flex items-center justify-between px-2.5 py-2 rounded-[8px] hover:bg-indigo-500/10 text-slate-700 dark:text-slate-200 transition-colors">
+              <span class="inline-flex items-center gap-2"><i data-lucide="${a.icon}" class="w-3.5 h-3.5 text-indigo-400"></i>${escapeHtml(a.label)}</span>
+              <span class="font-mono text-[10px] text-slate-400">${a.shortcut}</span>
+            </button>
+          `).join('');
+        }
+        if (folders.length) {
+          html += `<div class="px-2 pt-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-slate-400">跳转收藏夹</div>`;
+          html += folders.map((f) => `
+            <button type="button" data-cmd-folder="${escapeHtml(f)}" class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[8px] hover:bg-indigo-500/10 text-slate-700 dark:text-slate-200">
+              <i data-lucide="folder" class="w-3.5 h-3.5" style="color:${getFolderColor(f)}"></i>
+              <span>${escapeHtml(f)}</span>
+            </button>
+          `).join('');
+        }
+        if (bms.length) {
+          html += `<div class="px-2 pt-2 pb-1 text-[10px] font-mono uppercase tracking-wider text-slate-400">匹配书签</div>`;
+          html += bms.map((b) => `
+            <button type="button" data-cmd-bm="${escapeHtml(b.id)}" class="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-[8px] hover:bg-indigo-500/10 text-slate-700 dark:text-slate-200">
+              <span class="truncate">${escapeHtml(b.title)}</span>
+              <span class="text-[10px] font-mono text-slate-400 shrink-0">${escapeHtml(b.folder)}</span>
+            </button>
+          `).join('');
+        }
+        container.innerHTML = html || `<div class="py-8 text-center text-slate-400">无匹配结果</div>`;
+        lucide.createIcons();
+      }
+
+      // =========================================================================
+      // 11. Settings UI & Event Wiring
       // =========================================================================
       function renderCustomModelsList() {
         const listEl = document.getElementById('custom-models-list');
@@ -2091,9 +2314,9 @@
           return;
         }
         listEl.innerHTML = state.customModels.map((cm, idx) => `
-          <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px]">
-            <button type="button" data-pick-custom="${idx}" class="font-medium text-slate-700 dark:text-slate-200 hover:text-indigo-600">${escapeHtml(cm.name)}</button>
-            <button type="button" data-del-custom="${idx}" class="text-slate-400 hover:text-rose-500" title="删除">×</button>
+          <span class="inline-flex items-center gap-1 px-2 py-1 rounded-[8px] bg-white dark:bg-[#0c0e14] border border-slate-200 dark:border-white/[0.1] text-[11px]">
+            <button type="button" data-pick-custom="${idx}" class="font-medium text-slate-700 dark:text-slate-200 hover:text-indigo-400">${escapeHtml(cm.name)}</button>
+            <button type="button" data-del-custom="${idx}" class="text-slate-400 hover:text-rose-400" title="删除">×</button>
           </span>
         `).join('');
       }
@@ -2108,27 +2331,26 @@
         document.getElementById('setting-llm-enabled').checked = s.llmEnabled !== false;
         document.getElementById('setting-rpm-limit').value = String(s.rpmLimit ?? 10);
         document.getElementById('setting-input-limit').value = s.maxInputChars || 12000;
-        document.getElementById('setting-output-limit').value = s.maxOutputTokens || 700;
+        document.getElementById('setting-output-limit').value = s.maxOutputTokens || 1200;
         updateLLMUsageUI();
 
-        const customSec = document.getElementById('custom-models-section');
-        customSec.classList.toggle('hidden', s.provider !== 'custom');
+        document.getElementById('custom-models-section').classList.toggle('hidden', s.provider !== 'custom');
         renderCustomModelsList();
 
         document.querySelectorAll('.provider-btn').forEach((btn) => {
           const active = btn.dataset.provider === s.provider;
-          btn.className = `provider-btn px-2 py-1.5 rounded-lg border text-center font-medium transition-colors ${
+          btn.className = `provider-btn px-2 py-1.5 rounded-[8px] border text-center font-medium transition-colors ${
             active
-              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300'
-              : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+              ? 'border-indigo-500 bg-indigo-500/15 text-indigo-400'
+              : 'border-slate-200 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.04]'
           }`;
         });
 
         const credentialsReady = Boolean(s.endpoint && s.model && ((s.apiKey && s.apiKey.trim()) || s.provider === 'ollama'));
-        document.getElementById('llm-status-dot').className = `w-1.5 h-1.5 rounded-full ${credentialsReady ? 'bg-emerald-500' : 'bg-amber-400'}`;
+        document.getElementById('llm-status-dot').className = `w-1.5 h-1.5 rounded-full ${credentialsReady ? 'bg-emerald-400' : 'bg-amber-400'}`;
         document.getElementById('clip-engine-hint').textContent = credentialsReady
           ? `当前引擎：${s.provider === 'custom' ? (s.customName || '自定义模型') : s.model}`
-          : '当前引擎：本地 TF-IDF 语义引擎';
+          : '当前引擎：本地混合语义引擎';
       }
 
       function toggleModal(id, show) {
@@ -2137,8 +2359,11 @@
       }
 
       function initTheme() {
-        let isDark = false;
-        try { isDark = localStorage.getItem(THEME_KEY) === 'dark'; } catch (_) {}
+        let isDark = true;
+        try {
+          const saved = localStorage.getItem(THEME_KEY);
+          if (saved === 'light') isDark = false;
+        } catch (_) {}
         document.documentElement.classList.toggle('dark', isDark);
       }
 
@@ -2149,6 +2374,47 @@
         });
 
         document.getElementById('btn-rerun-local').addEventListener('click', rerunLocalBookmarks);
+
+        // Command Palette ⌘K
+        document.getElementById('btn-open-cmd').addEventListener('click', openCommandPalette);
+        document.addEventListener('keydown', (e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            const modal = document.getElementById('modal-cmd');
+            if (modal.classList.contains('hidden')) openCommandPalette();
+            else closeCommandPalette();
+          } else if (e.key === 'Escape' && !document.getElementById('modal-cmd').classList.contains('hidden')) {
+            closeCommandPalette();
+          }
+        });
+        document.getElementById('modal-cmd').addEventListener('click', (e) => {
+          if (e.target.id === 'modal-cmd') closeCommandPalette();
+        });
+        document.getElementById('cmd-input').addEventListener('input', (e) => renderCommandResults(e.target.value));
+        document.getElementById('cmd-results').addEventListener('click', (e) => {
+          const act = e.target.closest('[data-cmd-action]');
+          if (act) {
+            closeCommandPalette();
+            const id = act.dataset.cmdAction;
+            if (id === 'act-clip') toggleModal('modal-clip', true);
+            else if (id === 'act-import') toggleModal('modal-import', true);
+            else if (id === 'act-rerun') rerunLocalBookmarks();
+            else if (id === 'act-settings') { syncSettingsUI(); toggleModal('modal-settings', true); }
+            return;
+          }
+          const fBtn = e.target.closest('[data-cmd-folder]');
+          if (fBtn) {
+            state.selectedFolder = fBtn.dataset.cmdFolder;
+            renderAll();
+            closeCommandPalette();
+            return;
+          }
+          const bBtn = e.target.closest('[data-cmd-bm]');
+          if (bBtn) {
+            closeCommandPalette();
+            openBookmarkDrawer(bBtn.dataset.cmdBm);
+          }
+        });
 
         const sidebar = document.getElementById('sidebar');
         const backdrop = document.getElementById('sidebar-backdrop');
@@ -2202,7 +2468,7 @@
           }
         });
 
-        // Sidebar Folder Selection, Rename & Delete
+        // Sidebar Folder Selection, Rename, Delete & Drag-Drop Receiver
         const treeEl = document.getElementById('folder-tree-container');
         treeEl.addEventListener('click', (e) => {
           const saveRenameBtn = e.target.closest('[data-save-rename]');
@@ -2260,6 +2526,28 @@
           }
         });
 
+        treeEl.addEventListener('dragover', (e) => {
+          const folderRow = e.target.closest('[data-folder-row]');
+          if (!folderRow) return;
+          e.preventDefault();
+          folderRow.classList.add('drag-over-target');
+        });
+        treeEl.addEventListener('dragleave', (e) => {
+          const folderRow = e.target.closest('[data-folder-row]');
+          if (folderRow) folderRow.classList.remove('drag-over-target');
+        });
+        treeEl.addEventListener('drop', (e) => {
+          const folderRow = e.target.closest('[data-folder-row]');
+          if (!folderRow) return;
+          e.preventDefault();
+          folderRow.classList.remove('drag-over-target');
+          const bmId = e.dataTransfer?.getData('text/plain') || state.draggingBookmarkId;
+          const targetFolder = folderRow.dataset.folderRow;
+          if (bmId && targetFolder) {
+            moveBookmarkToFolder(bmId, targetFolder);
+          }
+        });
+
         document.getElementById('btn-del-folder-move').addEventListener('click', () => {
           if (state.pendingDeleteFolder) executeDeleteFolder(state.pendingDeleteFolder, false);
         });
@@ -2267,8 +2555,23 @@
           if (state.pendingDeleteFolder) executeDeleteFolder(state.pendingDeleteFolder, true);
         });
 
-        // Table Actions (Delete Bookmark, Remove Tag, Open Drawer)
-        document.getElementById('folder-view-content').addEventListener('click', (e) => {
+        // Table Actions & Drag Start
+        const viewFolderEl = document.getElementById('folder-view-content');
+        viewFolderEl.addEventListener('dragstart', (e) => {
+          const row = e.target.closest('[data-drag-bookmark]');
+          if (!row) return;
+          state.draggingBookmarkId = row.dataset.dragBookmark;
+          e.dataTransfer.setData('text/plain', row.dataset.dragBookmark);
+          e.dataTransfer.effectAllowed = 'move';
+          row.classList.add('opacity-50');
+        });
+        viewFolderEl.addEventListener('dragend', (e) => {
+          const row = e.target.closest('[data-drag-bookmark]');
+          if (row) row.classList.remove('opacity-50');
+          state.draggingBookmarkId = null;
+        });
+
+        viewFolderEl.addEventListener('click', (e) => {
           const rmTagBtn = e.target.closest('[data-remove-tag]');
           if (rmTagBtn) {
             e.stopPropagation();
@@ -2294,7 +2597,8 @@
           renderAll();
         });
 
-        document.getElementById('drawer-content').addEventListener('change', (e) => {
+        const drawerContentEl = document.getElementById('drawer-content');
+        drawerContentEl.addEventListener('change', (e) => {
           if (e.target.id === 'drawer-folder-select' && state.selectedBookmarkId) {
             const val = e.target.value;
             if (val === '__NEW__') {
@@ -2306,7 +2610,6 @@
           }
         });
 
-        const drawerContentEl = document.getElementById('drawer-content');
         drawerContentEl.addEventListener('click', (e) => {
           if (e.target.closest('#btn-confirm-new-folder') && state.selectedBookmarkId) {
             moveBookmarkToFolder(state.selectedBookmarkId, document.getElementById('drawer-new-folder-input').value);
@@ -2314,8 +2617,9 @@
           }
           if (e.target.closest('#btn-save-bookmark-meta') && state.selectedBookmarkId) {
             const tVal = document.getElementById('drawer-edit-title').value;
+            const uVal = document.getElementById('drawer-edit-url').value;
             const sVal = document.getElementById('drawer-edit-summary').value;
-            saveBookmarkMeta(state.selectedBookmarkId, tVal, sVal);
+            saveBookmarkMeta(state.selectedBookmarkId, tVal, uVal, sVal);
             return;
           }
           const editTagBtn = e.target.closest('[data-drawer-edit-tag]');
@@ -2323,7 +2627,7 @@
             const idx = Number(editTagBtn.dataset.drawerEditTagIdx);
             const oldTag = editTagBtn.dataset.drawerEditTag;
             const spanWrap = editTagBtn.parentElement;
-            spanWrap.innerHTML = `<input type="text" data-inline-tag-idx="${idx}" value="${escapeHtml(oldTag)}" class="w-20 px-1 py-0 text-[11px] bg-white dark:bg-slate-900 rounded border border-indigo-400 outline-none" />`;
+            spanWrap.innerHTML = `<input type="text" data-inline-tag-idx="${idx}" value="${escapeHtml(oldTag)}" class="w-20 px-1 py-0 text-[11px] bg-white dark:bg-[#0c0e14] rounded border border-indigo-400 outline-none" />`;
             const inp = spanWrap.querySelector('input');
             inp.focus();
             inp.select();
@@ -2351,8 +2655,7 @@
             return;
           }
           if (e.target.closest('#btn-drawer-add-tag') && state.selectedBookmarkId) {
-            const inp = document.getElementById('drawer-add-tag-input');
-            addTagToBookmark(state.selectedBookmarkId, inp.value);
+            addTagToBookmark(state.selectedBookmarkId, document.getElementById('drawer-add-tag-input').value);
           }
         });
 
@@ -2360,10 +2663,14 @@
           if (e.target.id === 'drawer-add-tag-input' && e.key === 'Enter' && state.selectedBookmarkId) {
             e.preventDefault();
             addTagToBookmark(state.selectedBookmarkId, e.target.value);
-          } else if (e.target.id === 'drawer-edit-title' && e.key === 'Enter' && state.selectedBookmarkId) {
+          } else if ((e.target.id === 'drawer-edit-title' || e.target.id === 'drawer-edit-url') && e.key === 'Enter' && state.selectedBookmarkId) {
             e.preventDefault();
-            const sVal = document.getElementById('drawer-edit-summary').value;
-            saveBookmarkMeta(state.selectedBookmarkId, e.target.value, sVal);
+            saveBookmarkMeta(
+              state.selectedBookmarkId,
+              document.getElementById('drawer-edit-title').value,
+              document.getElementById('drawer-edit-url').value,
+              document.getElementById('drawer-edit-summary').value
+            );
           }
         });
 
@@ -2389,7 +2696,7 @@
           btn.addEventListener('click', () => toggleModal(btn.dataset.closeModal, false));
         });
 
-        // Multi-Format Import Events
+        // Multi-Format Import
         const fileInput = document.getElementById('input-import-file');
         const dropzone = document.getElementById('import-dropzone');
         fileInput.addEventListener('change', async (e) => {
@@ -2539,7 +2846,7 @@
           state.settings.llmEnabled = document.getElementById('setting-llm-enabled').checked;
           state.settings.rpmLimit = Number(document.getElementById('setting-rpm-limit').value ?? 10);
           state.settings.maxInputChars = Math.max(500, Math.min(100000, Number(document.getElementById('setting-input-limit').value || 12000)));
-          state.settings.maxOutputTokens = Math.max(64, Math.min(8192, Number(document.getElementById('setting-output-limit').value || 700)));
+          state.settings.maxOutputTokens = Math.max(64, Math.min(8192, Number(document.getElementById('setting-output-limit').value || 1200)));
           saveSettings(state.settings);
           syncSettingsUI();
           renderFolderView();
@@ -2550,7 +2857,7 @@
           const blob = new Blob([JSON.stringify(state.bookmarks, null, 2)], { type: 'application/json' });
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = `nexusclip-backup-${new Date().toISOString().slice(0, 10)}.json`;
+          a.download = `inlist-backup-${new Date().toISOString().slice(0, 10)}.json`;
           a.click();
           showToast('已导出 JSON', 'success');
         });
@@ -2567,11 +2874,11 @@
             items.forEach((b) => { body += `    <DT><A HREF="${escapeHtml(b.url)}">${escapeHtml(b.title)}</A>\n`; });
             body += `  </DL><p>\n`;
           });
-          const html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>NexusClip Bookmarks</TITLE>\n<H1>NexusClip Bookmarks</H1>\n<DL><p>\n${body}</DL><p>`;
+          const html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>INLIST Bookmarks</TITLE>\n<H1>INLIST Bookmarks</H1>\n<DL><p>\n${body}</DL><p>`;
           const blob = new Blob([html], { type: 'text/html' });
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = `nexusclip-bookmarks-${new Date().toISOString().slice(0, 10)}.html`;
+          a.download = `inlist-bookmarks-${new Date().toISOString().slice(0, 10)}.html`;
           a.click();
           showToast('已导出 HTML 书签', 'success');
         });
@@ -2579,6 +2886,8 @@
         document.getElementById('btn-reset-demo').addEventListener('click', async () => {
           await dbClearAndSeed(DEMO_BOOKMARKS);
           state.bookmarks = [...DEMO_BOOKMARKS];
+          state.customFolders = [];
+          saveCustomFolders([]);
           state.selectedFolder = null;
           state.selectedBookmarkId = null;
           document.getElementById('detail-drawer').classList.add('hidden');
@@ -2593,7 +2902,7 @@
       }
 
       // =========================================================================
-      // 11. Bootstrap
+      // 12. Bootstrap
       // =========================================================================
       async function bootstrap() {
         initTheme();
