@@ -119,7 +119,20 @@
       </div>
 
       <!-- Folder List -->
-      <div class="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">目录索引</div>
+      <div class="px-3 pt-3 pb-1.5 flex items-center justify-between">
+        <span class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">收藏夹目录</span>
+        <button id="btn-add-folder" type="button" class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors" title="新建收藏夹">
+          <i data-lucide="folder-plus" class="w-3 h-3"></i>
+          <span>新建</span>
+        </button>
+      </div>
+      <div id="sidebar-new-folder-box" class="hidden px-2.5 pb-2">
+        <div class="flex items-center gap-1">
+          <input id="sidebar-new-folder-input" type="text" placeholder="输入收藏夹名称..." class="flex-1 min-w-0 px-2 py-1 text-xs rounded-md border border-indigo-400 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none" />
+          <button id="btn-sidebar-new-folder-ok" type="button" class="px-2 py-1 rounded-md bg-indigo-600 text-white text-[11px] font-medium shrink-0">确定</button>
+          <button id="btn-sidebar-new-folder-cancel" type="button" class="p-1 rounded-md text-slate-400 hover:text-slate-600 shrink-0"><i data-lucide="x" class="w-3 h-3"></i></button>
+        </div>
+      </div>
       <div class="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5" id="folder-tree-container">
         <!-- Rendered dynamically -->
       </div>
@@ -406,6 +419,29 @@
     </div>
   </div>
 
+  <!-- Modal: Delete Folder Confirmation -->
+  <div id="modal-delete-folder" class="hidden fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#0d131f] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-900 dark:text-white">删除收藏夹</h2>
+        <button data-close-modal="modal-delete-folder" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4 text-xs">
+        <p id="delete-folder-desc" class="text-slate-600 dark:text-slate-300 leading-relaxed"></p>
+        <div class="flex flex-col gap-2">
+          <button id="btn-del-folder-move" type="button" class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium text-left">
+            保留书签，仅删除收藏夹（移至「未分类」）
+          </button>
+          <button id="btn-del-folder-all" type="button" class="w-full px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium text-left">
+            连同内部书签一起彻底删除
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
@@ -475,7 +511,7 @@
         {
           id: 'bm-agent-arch',
           folder: 'AI 架构',
-          title: '〔指南〕Anthropic 智能体工程实践',
+          title: 'Anthropic 智能体工程实践',
           url: 'https://www.anthropic.com/research/building-effective-agents',
           summary: '阐述可组合工作流与自主智能体的设计边界及工具接口规范。',
           tags: ['Agent', '工作流', '架构'],
@@ -487,7 +523,7 @@
         {
           id: 'bm-rag-eval',
           folder: 'AI 架构',
-          title: '〔论文〕GraphRAG 混合索引策略',
+          title: 'GraphRAG 混合索引策略',
           url: 'https://arxiv.org/abs/2404.16130',
           summary: '结合向量检索与知识图谱社区摘要，显著提升跨文档多跳推理精度。',
           tags: ['GraphRAG', '知识图谱', '检索'],
@@ -499,7 +535,7 @@
         {
           id: 'bm-local-first',
           folder: '系统与存储',
-          title: '〔架构〕Local-First 本地优先原则',
+          title: 'Local-First 本地优先原则',
           url: 'https://www.inkandswitch.com/local-first/',
           summary: '以客户端本地存储为主数据源，实现零延迟交互与离线数据自主权。',
           tags: ['Local-First', 'IndexedDB', '隐私'],
@@ -511,7 +547,7 @@
         {
           id: 'bm-sqlite-vec',
           folder: '系统与存储',
-          title: '〔文档〕IndexedDB 客户端索引优化',
+          title: 'IndexedDB 客户端索引优化',
           url: 'https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API',
           summary: '利用异步事务与冷热数据拆分，保障浏览器端海量书签零阻塞检索。',
           tags: ['IndexedDB', '存储', '性能'],
@@ -523,7 +559,7 @@
         {
           id: 'bm-pwa-craft',
           folder: '前端工程',
-          title: '〔规范〕PWA 零安装桌面应用',
+          title: 'PWA 零安装桌面应用',
           url: 'https://web.dev/explore/progressive-web-apps',
           summary: '借助 Manifest 与 Service Worker 实现免商店审核的离线桌面级体验。',
           tags: ['PWA', '离线缓存', '前端'],
@@ -535,7 +571,7 @@
         {
           id: 'bm-design-sys',
           folder: '前端工程',
-          title: '〔设计〕Linear 工具美学与层级',
+          title: 'Linear 工具美学与层级',
           url: 'https://linear.app/method',
           summary: '通过克制色彩、细线分隔与清晰排版构建高效率专业工作台。',
           tags: ['UI设计', '设计系统', '交互'],
@@ -547,7 +583,7 @@
         {
           id: 'bm-pkms-habit',
           folder: '产品研究',
-          title: '〔方法〕Evergreen Notes 常青笔记',
+          title: 'Evergreen Notes 常青笔记',
           url: 'https://notes.andymatuschak.org/Evergreen_notes',
           summary: '将零散书签转化为原子化、以概念为核心的高密度知识节点。',
           tags: ['知识管理', '产品', '笔记'],
@@ -567,6 +603,7 @@
       const SETTINGS_KEY = 'nexusclip_llm_settings_v2';
       const RPM_KEY = 'nexusclip_llm_rpm_timestamps_v1';
       const CUSTOM_MODELS_KEY = 'nexusclip_custom_models_v1';
+      const FOLDERS_KEY = 'nexusclip_folders_v1';
       const THEME_KEY = 'nexusclip_theme_v1';
 
       let memoryFallbackBookmarks = [];
@@ -741,13 +778,29 @@
       // =========================================================================
       // 4. Application State
       // =========================================================================
+      function loadCustomFolders() {
+        try {
+          const raw = localStorage.getItem(FOLDERS_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (_) {
+          return [];
+        }
+      }
+
+      function saveCustomFolders(list) {
+        try { localStorage.setItem(FOLDERS_KEY, JSON.stringify(list)); } catch (_) {}
+      }
+
       const state = {
         bookmarks: [],
+        customFolders: loadCustomFolders(),
         settings: loadSettings(),
         customModels: loadCustomModels(),
         searchQuery: '',
         selectedFolder: null,
         selectedBookmarkId: null,
+        editingFolder: null,
+        pendingDeleteFolder: null,
         isProcessing: false,
         isRerunning: false,
         cancelRerun: false
@@ -797,7 +850,9 @@
       }
 
       function getAllFolderNames() {
-        return Array.from(new Set(state.bookmarks.map((b) => b.folder))).sort();
+        const set = new Set(state.customFolders || []);
+        state.bookmarks.forEach((b) => { if (b.folder) set.add(b.folder); });
+        return Array.from(set).sort((a, b) => a.localeCompare(b, 'zh-CN'));
       }
 
       // =========================================================================
@@ -902,21 +957,80 @@
 
       function polishBookmarkTitle(rawTitle, url = '') {
         let t = String(rawTitle || '').trim()
+          .replace(/^〔[^〕]{1,10}〕\s*/, '')
           .replace(/\s*[-|–—_·]\s*(知乎|掘金|GitHub|Medium|Substack|Wikipedia|CSDN|简书|少数派|36氪).*$/i, '')
           .replace(/\s*[-|–—]\s*[^-|–—]{2,18}$/, '')
-          .replace(/[【\[]\s*([^】\]]+)\s*[】\]]/g, '〔$1〕')
           .replace(/\s+/g, ' ')
           .trim();
         if (!t) t = getHostname(url) || '未命名书签';
-        if (!t.startsWith('〔')) {
-          const host = getHostname(url);
-          const prefix = /arxiv|scholar|ieee|acm/i.test(host) ? '〔论文〕'
-            : /github|gitlab|npmjs|pypi/i.test(host) ? '〔源码〕'
-            : /developer\.mozilla|web\.dev|docs\./i.test(host) ? '〔文档〕'
-            : '〔研报〕';
-          t = `${prefix}${t}`;
+        return t.length > 24 ? t.slice(0, 23) + '…' : t;
+      }
+
+      function extractPreciseTags(title, url, content, folder) {
+        const tStr = String(title || '').toLowerCase();
+        const uStr = String(url || '').toLowerCase();
+        const cStr = String(content || '').toLowerCase();
+
+        const lexicon = [
+          { tag: 'Agent', keys: ['agent', 'agents', '智能体', 'multi-agent'] },
+          { tag: 'LLM', keys: ['llm', 'gpt', 'claude', 'gemini', 'deepseek', 'qwen', 'llama', '大模型', '语言模型'] },
+          { tag: 'GraphRAG', keys: ['graphrag'] },
+          { tag: 'RAG', keys: ['rag', 'retrieval', '检索增强'] },
+          { tag: '知识图谱', keys: ['knowledge graph', '知识图谱', '图谱'] },
+          { tag: '提示工程', keys: ['prompt', '提示词', '提示工程'] },
+          { tag: '工作流', keys: ['workflow', 'workflows', '工作流', '编排'] },
+          { tag: 'WebGPU', keys: ['webgpu'] },
+          { tag: 'IndexedDB', keys: ['indexeddb'] },
+          { tag: 'Local-First', keys: ['local-first', '本地优先'] },
+          { tag: 'PWA', keys: ['pwa', 'progressive web', 'service worker'] },
+          { tag: 'Canvas', keys: ['canvas', 'webgl'] },
+          { tag: 'TypeScript', keys: ['typescript', '.ts'] },
+          { tag: 'React', keys: ['react', 'nextjs', 'next.js'] },
+          { tag: 'Tailwind', keys: ['tailwind'] },
+          { tag: 'Kubernetes', keys: ['kubernetes', 'k8s'] },
+          { tag: 'Docker', keys: ['docker', 'container', '容器'] },
+          { tag: '微服务', keys: ['microservice', 'microservices', '微服务'] },
+          { tag: '向量检索', keys: ['vector', 'embedding', '向量', '嵌入'] },
+          { tag: '性能优化', keys: ['performance', 'optimization', '性能', '加速', '60fps'] },
+          { tag: '设计系统', keys: ['design system', '设计系统', 'ui', '美学'] },
+          { tag: '交互设计', keys: ['interaction', 'ux', '交互'] },
+          { tag: '知识管理', keys: ['evergreen', 'obsidian', 'pkms', '知识管理', '知识库', '笔记'] },
+          { tag: '数据库', keys: ['database', 'sqlite', 'postgres', 'sql', '数据库'] },
+          { tag: '离线缓存', keys: ['offline', 'cache', '离线', '缓存'] },
+          { tag: '系统架构', keys: ['architecture', '架构'] }
+        ];
+
+        const scored = [];
+        lexicon.forEach((item) => {
+          let score = 0;
+          item.keys.forEach((k) => {
+            if (tStr.includes(k)) score += 3;
+            if (uStr.includes(k)) score += 2;
+            if (cStr.includes(k)) score += 1;
+          });
+          if (score > 0) scored.push({ tag: item.tag, score });
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        const picked = [];
+        scored.forEach((x) => {
+          if (picked.length < 3 && !picked.includes(x.tag)) picked.push(x.tag);
+        });
+
+        // Fallback: extract capitalized technical terms from title
+        if (picked.length < 2) {
+          const caps = String(title || '').match(/\b[A-Z][A-Za-z0-9.+-]{2,14}\b/g) || [];
+          caps.forEach((w) => {
+            if (picked.length < 3 && !picked.includes(w)) picked.push(w);
+          });
         }
-        return t.length > 22 ? t.slice(0, 21) + '…' : t;
+
+        if (picked.length === 0) {
+          const host = getHostname(url).split('.')[0];
+          if (host) picked.push(host);
+          if (folder && folder !== '综合资料') picked.push(folder);
+        }
+        return picked.slice(0, 3);
       }
 
       function normalizeFolderName(name) {
@@ -1005,10 +1119,7 @@
 
       function localFallbackAnalyze(title, url, content, excludeId = null, preferredFolder = null) {
         const bestFolder = classifyBookmarkHybrid(title, url, content, excludeId, preferredFolder);
-        const lower = `${title} ${url} ${content}`.toLowerCase();
-        const candidateKeys = ['agent', 'llm', 'rag', 'pwa', 'indexeddb', 'webgpu', 'react', 'canvas', 'docker', 'api', '大模型', '智能体', '前端', '设计', '架构', '数据库', '知识管理'];
-        const matchedTags = candidateKeys.filter((k) => lower.includes(k)).slice(0, 3);
-        if (matchedTags.length === 0) matchedTags.push(getHostname(url).split('.')[0] || '网页', bestFolder);
+        const matchedTags = extractPreciseTags(title, url, content, bestFolder);
 
         const cleanTitle = polishBookmarkTitle(title, url);
         const oneLineSummary = toOneSentence(content, `收录自 ${getHostname(url)} 的「${bestFolder}」参考资料。`);
@@ -1592,17 +1703,20 @@
         const container = document.getElementById('folder-tree-container');
         const filtered = getFilteredBookmarks();
         const folderMap = new Map();
+        if (!state.searchQuery.trim()) {
+          (state.customFolders || []).forEach((f) => { if (f && !folderMap.has(f)) folderMap.set(f, []); });
+        }
         filtered.forEach((b) => {
           const f = b.folder || '未分类';
           if (!folderMap.has(f)) folderMap.set(f, []);
           folderMap.get(f).push(b);
         });
-        document.getElementById('sidebar-stats').textContent = `${folderMap.size} 目录 · ${filtered.length} 条`;
+        document.getElementById('sidebar-stats').textContent = `${folderMap.size} 收藏夹 · ${filtered.length} 条`;
 
         let html = `
           <div class="flex items-center justify-between px-2.5 py-2 mb-1 rounded-lg cursor-pointer transition-colors ${state.selectedFolder === null ? 'bg-slate-900 text-white dark:bg-indigo-600' : 'hover:bg-slate-100 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-200'}" data-select-all="true">
             <div class="flex items-center gap-2 text-xs font-medium">
-              <i data-lucide="database" class="w-3.5 h-3.5 opacity-80"></i>
+              <i data-lucide="folder-kanban" class="w-3.5 h-3.5 opacity-90"></i>
               <span>全部收藏</span>
             </div>
             <span class="text-[11px] font-mono tabular-nums opacity-80">${filtered.length}</span>
@@ -1611,6 +1725,7 @@
 
         [...folderMap.entries()].sort((a, b) => a[0].localeCompare(b[0], 'zh-CN')).forEach(([folderName, items]) => {
           const selected = state.selectedFolder === folderName;
+          const isEditing = state.editingFolder === folderName;
           const color = getFolderColor(folderName);
           const preview = items.slice(0, 8).map((b, i) => `
             <div class="flex items-center gap-2 py-1 border-b border-slate-100 dark:border-slate-800 last:border-0">
@@ -1619,28 +1734,55 @@
             </div>
           `).join('');
 
-          html += `
-            <div class="folder-hover-wrap relative" data-folder-hover-wrap="${escapeHtml(folderName)}">
-              <div class="flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${selected ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-200 font-medium border-l-2 border-indigo-600' : 'hover:bg-slate-100/80 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'}" data-folder-row="${escapeHtml(folderName)}">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="w-2 h-2 rounded-full shrink-0" style="background:${color}"></span>
-                  <span class="text-xs truncate">${escapeHtml(folderName)}</span>
-                </div>
-                <span class="text-[11px] font-mono tabular-nums text-slate-400">${items.length}</span>
+          if (isEditing) {
+            html += `
+              <div class="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-700">
+                <i data-lucide="folder-open" class="w-3.5 h-3.5 shrink-0" style="color:${color}"></i>
+                <input id="sidebar-rename-input" type="text" value="${escapeHtml(folderName)}" class="flex-1 min-w-0 px-1.5 py-0.5 text-xs rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none" />
+                <button type="button" data-save-rename="${escapeHtml(folderName)}" class="p-1 rounded text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50" title="保存"><i data-lucide="check" class="w-3 h-3"></i></button>
+                <button type="button" data-cancel-rename="true" class="p-1 rounded text-slate-400 hover:text-slate-600" title="取消"><i data-lucide="x" class="w-3 h-3"></i></button>
               </div>
-              <div class="folder-hover-card hidden absolute left-[calc(100%+8px)] top-0 z-40 w-64 max-h-64 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#111827] shadow-xl p-2.5 text-[11px]">
-                <div class="flex items-center justify-between mb-1.5 pb-1 border-b border-slate-100 dark:border-slate-800">
-                  <strong class="text-slate-900 dark:text-slate-100">${escapeHtml(folderName)}</strong>
-                  <span class="text-slate-400 font-mono">${items.length}</span>
+            `;
+          } else {
+            html += `
+              <div class="folder-hover-wrap group relative" data-folder-hover-wrap="${escapeHtml(folderName)}">
+                <div class="flex items-center justify-between px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${selected ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-200 font-medium border-l-2 border-indigo-600' : 'hover:bg-slate-100/80 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'}" data-folder-row="${escapeHtml(folderName)}">
+                  <div class="flex items-center gap-2 min-w-0 flex-1">
+                    <i data-lucide="${selected ? 'folder-open' : 'folder'}" class="w-3.5 h-3.5 shrink-0" style="color:${color}"></i>
+                    <span class="text-xs truncate">${escapeHtml(folderName)}</span>
+                  </div>
+                  <div class="flex items-center gap-0.5 shrink-0">
+                    <div class="hidden group-hover:flex items-center gap-0.5 mr-1">
+                      <button type="button" data-rename-folder="${escapeHtml(folderName)}" class="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-white dark:hover:bg-slate-800" title="重命名收藏夹">
+                        <i data-lucide="pencil" class="w-3 h-3"></i>
+                      </button>
+                      <button type="button" data-delete-folder="${escapeHtml(folderName)}" class="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-white dark:hover:bg-slate-800" title="删除收藏夹">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                      </button>
+                    </div>
+                    <span class="text-[11px] font-mono tabular-nums text-slate-400">${items.length}</span>
+                  </div>
                 </div>
-                ${preview}
+                ${items.length ? `
+                  <div class="folder-hover-card hidden absolute left-[calc(100%+8px)] top-0 z-40 w-64 max-h-64 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#111827] shadow-xl p-2.5 text-[11px]">
+                    <div class="flex items-center justify-between mb-1.5 pb-1 border-b border-slate-100 dark:border-slate-800">
+                      <strong class="text-slate-900 dark:text-slate-100">${escapeHtml(folderName)}</strong>
+                      <span class="text-slate-400 font-mono">${items.length}</span>
+                    </div>
+                    ${preview}
+                  </div>
+                ` : ''}
               </div>
-            </div>
-          `;
+            `;
+          }
         });
 
         container.innerHTML = html;
         lucide.createIcons();
+        if (state.editingFolder) {
+          const inp = document.getElementById('sidebar-rename-input');
+          if (inp) { inp.focus(); inp.select(); }
+        }
       }
 
       function renderFolderView() {
@@ -1762,46 +1904,50 @@
         badge.innerHTML = `<span class="w-2 h-2 rounded-full" style="background:${color}"></span><span>${escapeHtml(bm.folder)}</span>`;
 
         content.innerHTML = `
-          <div>
-            <h3 class="text-base font-semibold text-slate-900 dark:text-white leading-snug">${escapeHtml(bm.title)}</h3>
-            <a href="${escapeHtml(bm.url)}" target="_blank" rel="noopener noreferrer" class="mt-1.5 inline-flex items-center gap-1 text-xs font-mono text-indigo-600 dark:text-indigo-400 hover:underline break-all">
+          <div class="space-y-1.5">
+            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">名称（可编辑）</label>
+            <input id="drawer-edit-title" type="text" value="${escapeHtml(bm.title)}" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:border-indigo-500" />
+            <a href="${escapeHtml(bm.url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] font-mono text-indigo-600 dark:text-indigo-400 hover:underline break-all">
               <span>${escapeHtml(bm.url)}</span>
               <i data-lucide="external-link" class="w-3 h-3 shrink-0"></i>
             </a>
           </div>
 
           <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-2">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">归属文件夹</label>
+            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400">归属收藏夹</label>
             <select id="drawer-folder-select" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-indigo-500">
               ${folders.map((f) => `<option value="${escapeHtml(f)}" ${f === bm.folder ? 'selected' : ''}>${escapeHtml(f)}</option>`).join('')}
-              <option value="__NEW__">+ 新建文件夹...</option>
+              <option value="__NEW__">+ 新建收藏夹...</option>
             </select>
             <div id="drawer-new-folder-wrap" class="hidden flex gap-1.5 pt-1">
-              <input id="drawer-new-folder-input" type="text" placeholder="输入新文件夹名称" class="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs outline-none focus:border-indigo-500" />
+              <input id="drawer-new-folder-input" type="text" placeholder="输入新收藏夹名称" class="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs outline-none focus:border-indigo-500" />
               <button id="btn-confirm-new-folder" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-900 dark:bg-indigo-600 text-white text-xs font-medium">确定</button>
             </div>
           </div>
 
-          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800">
-            <div class="flex items-center justify-between mb-1.5">
-              <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">一句话简介</span>
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">来源说明（一句话简介，可编辑）</label>
               <span class="text-[10px] font-mono ${bm.engine === '本地引擎' ? 'text-amber-500' : 'text-slate-400'}">${escapeHtml(bm.engine || '本地引擎')}</span>
             </div>
-            <p class="text-xs leading-relaxed text-slate-700 dark:text-slate-200">${escapeHtml(toOneSentence(bm.summary, '暂无简介。'))}</p>
+            <textarea id="drawer-edit-summary" rows="2" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs leading-relaxed text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500 resize-none">${escapeHtml(bm.summary || '')}</textarea>
+            <div class="flex justify-end">
+              <button id="btn-save-bookmark-meta" type="button" class="px-3 py-1 rounded-lg bg-slate-900 dark:bg-indigo-600 text-white text-[11px] font-medium hover:opacity-90">保存名称与说明</button>
+            </div>
           </div>
 
           <div class="space-y-2">
-            <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">标签管理</div>
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">标签管理（点击标签可编辑，× 删除）</div>
             <div class="flex flex-wrap gap-1.5">
-              ${(bm.tags || []).map((t) => `
+              ${(bm.tags || []).map((t, idx) => `
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700">
-                  <span>${escapeHtml(t)}</span>
+                  <button type="button" data-drawer-edit-tag-idx="${idx}" data-drawer-edit-tag="${escapeHtml(t)}" class="hover:text-indigo-600 dark:hover:text-indigo-400" title="点击修改标签">${escapeHtml(t)}</button>
                   <button type="button" data-drawer-remove-tag="${escapeHtml(t)}" class="text-slate-400 hover:text-rose-600" title="删除标签">×</button>
                 </span>
               `).join('')}
             </div>
             <div class="flex gap-1.5 pt-1">
-              <input id="drawer-add-tag-input" type="text" placeholder="添加新标签..." class="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs outline-none focus:border-indigo-500" />
+              <input id="drawer-add-tag-input" type="text" placeholder="输入标签名按回车添加..." class="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs outline-none focus:border-indigo-500" />
               <button id="btn-drawer-add-tag" type="button" class="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium">添加</button>
             </div>
           </div>
@@ -1844,12 +1990,83 @@
         showToast('已删除书签', 'info');
       }
 
+      async function addCustomFolder(name) {
+        const clean = String(name || '').trim();
+        if (!clean) return;
+        if (!state.customFolders.includes(clean)) {
+          state.customFolders.push(clean);
+          saveCustomFolders(state.customFolders);
+        }
+        state.selectedFolder = clean;
+        renderAll();
+        showToast(`已新建收藏夹「${clean}」`, 'success');
+      }
+
+      async function renameFolder(oldName, newName) {
+        const clean = String(newName || '').trim();
+        state.editingFolder = null;
+        if (!clean || clean === oldName) {
+          renderSidebar();
+          return;
+        }
+        const toUpdate = state.bookmarks.filter((b) => b.folder === oldName);
+        toUpdate.forEach((b) => { b.folder = clean; });
+        if (toUpdate.length) await dbPutBatch(toUpdate);
+        state.customFolders = state.customFolders.map((f) => (f === oldName ? clean : f));
+        if (!state.customFolders.includes(clean)) state.customFolders.push(clean);
+        saveCustomFolders(state.customFolders);
+        if (state.selectedFolder === oldName) state.selectedFolder = clean;
+        renderAll();
+        if (state.selectedBookmarkId) openBookmarkDrawer(state.selectedBookmarkId);
+        showToast(`已将「${oldName}」重命名为「${clean}」`, 'success');
+      }
+
+      async function executeDeleteFolder(folderName, deleteBookmarks) {
+        if (deleteBookmarks) {
+          const toDelete = state.bookmarks.filter((b) => b.folder === folderName);
+          for (const b of toDelete) await dbDelete(b.id);
+          state.bookmarks = state.bookmarks.filter((b) => b.folder !== folderName);
+          if (state.selectedBookmarkId && toDelete.some((b) => b.id === state.selectedBookmarkId)) {
+            state.selectedBookmarkId = null;
+            document.getElementById('detail-drawer').classList.add('hidden');
+          }
+        } else {
+          const toMove = state.bookmarks.filter((b) => b.folder === folderName);
+          toMove.forEach((b) => { b.folder = '未分类'; });
+          if (toMove.length) await dbPutBatch(toMove);
+        }
+        state.customFolders = state.customFolders.filter((f) => f !== folderName);
+        saveCustomFolders(state.customFolders);
+        if (state.selectedFolder === folderName) state.selectedFolder = null;
+        state.pendingDeleteFolder = null;
+        toggleModal('modal-delete-folder', false);
+        renderAll();
+        showToast(deleteBookmarks ? `已删除收藏夹「${folderName}」及其书签` : `已删除收藏夹「${folderName}」，书签移至未分类`, 'info');
+      }
+
+      async function saveBookmarkMeta(bmId, newTitle, newSummary) {
+        const bm = state.bookmarks.find((b) => b.id === bmId);
+        if (!bm) return;
+        const cleanTitle = String(newTitle || '').trim();
+        const cleanSummary = String(newSummary || '').trim();
+        if (cleanTitle) bm.title = cleanTitle;
+        bm.summary = cleanSummary;
+        await dbPut(bm);
+        renderAll();
+        openBookmarkDrawer(bmId);
+        showToast('已保存书签名称与来源说明', 'success');
+      }
+
       async function moveBookmarkToFolder(bmId, newFolder) {
         const clean = (newFolder || '').trim();
         if (!clean) return;
         const bm = state.bookmarks.find((b) => b.id === bmId);
         if (!bm || bm.folder === clean) return;
         bm.folder = clean;
+        if (!state.customFolders.includes(clean)) {
+          state.customFolders.push(clean);
+          saveCustomFolders(state.customFolders);
+        }
         await dbPut(bm);
         state.selectedFolder = clean;
         renderAll();
@@ -1960,8 +2177,64 @@
           renderFolderView();
         });
 
-        // Sidebar Folder Selection
-        document.getElementById('folder-tree-container').addEventListener('click', (e) => {
+        // Sidebar Add Folder
+        const newFolderBox = document.getElementById('sidebar-new-folder-box');
+        const newFolderInp = document.getElementById('sidebar-new-folder-input');
+        document.getElementById('btn-add-folder').addEventListener('click', () => {
+          newFolderBox.classList.remove('hidden');
+          newFolderInp.value = '';
+          newFolderInp.focus();
+        });
+        document.getElementById('btn-sidebar-new-folder-ok').addEventListener('click', () => {
+          addCustomFolder(newFolderInp.value);
+          newFolderBox.classList.add('hidden');
+        });
+        document.getElementById('btn-sidebar-new-folder-cancel').addEventListener('click', () => {
+          newFolderBox.classList.add('hidden');
+        });
+        newFolderInp.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            addCustomFolder(newFolderInp.value);
+            newFolderBox.classList.add('hidden');
+          } else if (e.key === 'Escape') {
+            newFolderBox.classList.add('hidden');
+          }
+        });
+
+        // Sidebar Folder Selection, Rename & Delete
+        const treeEl = document.getElementById('folder-tree-container');
+        treeEl.addEventListener('click', (e) => {
+          const saveRenameBtn = e.target.closest('[data-save-rename]');
+          if (saveRenameBtn) {
+            e.stopPropagation();
+            const inp = document.getElementById('sidebar-rename-input');
+            renameFolder(saveRenameBtn.dataset.saveRename, inp ? inp.value : '');
+            return;
+          }
+          if (e.target.closest('[data-cancel-rename]')) {
+            e.stopPropagation();
+            state.editingFolder = null;
+            renderSidebar();
+            return;
+          }
+          const renameBtn = e.target.closest('[data-rename-folder]');
+          if (renameBtn) {
+            e.stopPropagation();
+            state.editingFolder = renameBtn.dataset.renameFolder;
+            renderSidebar();
+            return;
+          }
+          const delFolderBtn = e.target.closest('[data-delete-folder]');
+          if (delFolderBtn) {
+            e.stopPropagation();
+            const fName = delFolderBtn.dataset.deleteFolder;
+            state.pendingDeleteFolder = fName;
+            const cnt = state.bookmarks.filter((b) => b.folder === fName).length;
+            document.getElementById('delete-folder-desc').textContent = `确定要删除收藏夹「${fName}」吗？（当前包含 ${cnt} 条书签）`;
+            toggleModal('modal-delete-folder', true);
+            return;
+          }
           if (e.target.closest('[data-select-all]')) {
             state.selectedFolder = null;
             renderAll();
@@ -1973,6 +2246,25 @@
           state.selectedFolder = folderRow.dataset.folderRow;
           renderAll();
           if (window.innerWidth < 1024) setSidebarOpen(false);
+        });
+
+        treeEl.addEventListener('keydown', (e) => {
+          if (e.target.id === 'sidebar-rename-input') {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              renameFolder(state.editingFolder, e.target.value);
+            } else if (e.key === 'Escape') {
+              state.editingFolder = null;
+              renderSidebar();
+            }
+          }
+        });
+
+        document.getElementById('btn-del-folder-move').addEventListener('click', () => {
+          if (state.pendingDeleteFolder) executeDeleteFolder(state.pendingDeleteFolder, false);
+        });
+        document.getElementById('btn-del-folder-all').addEventListener('click', () => {
+          if (state.pendingDeleteFolder) executeDeleteFolder(state.pendingDeleteFolder, true);
         });
 
         // Table Actions (Delete Bookmark, Remove Tag, Open Drawer)
@@ -2014,9 +2306,43 @@
           }
         });
 
-        document.getElementById('drawer-content').addEventListener('click', (e) => {
+        const drawerContentEl = document.getElementById('drawer-content');
+        drawerContentEl.addEventListener('click', (e) => {
           if (e.target.closest('#btn-confirm-new-folder') && state.selectedBookmarkId) {
             moveBookmarkToFolder(state.selectedBookmarkId, document.getElementById('drawer-new-folder-input').value);
+            return;
+          }
+          if (e.target.closest('#btn-save-bookmark-meta') && state.selectedBookmarkId) {
+            const tVal = document.getElementById('drawer-edit-title').value;
+            const sVal = document.getElementById('drawer-edit-summary').value;
+            saveBookmarkMeta(state.selectedBookmarkId, tVal, sVal);
+            return;
+          }
+          const editTagBtn = e.target.closest('[data-drawer-edit-tag]');
+          if (editTagBtn && state.selectedBookmarkId) {
+            const idx = Number(editTagBtn.dataset.drawerEditTagIdx);
+            const oldTag = editTagBtn.dataset.drawerEditTag;
+            const spanWrap = editTagBtn.parentElement;
+            spanWrap.innerHTML = `<input type="text" data-inline-tag-idx="${idx}" value="${escapeHtml(oldTag)}" class="w-20 px-1 py-0 text-[11px] bg-white dark:bg-slate-900 rounded border border-indigo-400 outline-none" />`;
+            const inp = spanWrap.querySelector('input');
+            inp.focus();
+            inp.select();
+            const commit = async () => {
+              const nv = inp.value.trim();
+              const bm = state.bookmarks.find((b) => b.id === state.selectedBookmarkId);
+              if (bm && nv && nv !== oldTag) {
+                bm.tags[idx] = nv;
+                bm.tags = Array.from(new Set(bm.tags));
+                await dbPut(bm);
+                renderAll();
+              }
+              if (state.selectedBookmarkId) openBookmarkDrawer(state.selectedBookmarkId);
+            };
+            inp.addEventListener('blur', commit, { once: true });
+            inp.addEventListener('keydown', (ke) => {
+              if (ke.key === 'Enter') { ke.preventDefault(); inp.blur(); }
+              else if (ke.key === 'Escape') { openBookmarkDrawer(state.selectedBookmarkId); }
+            });
             return;
           }
           const rmTag = e.target.closest('[data-drawer-remove-tag]');
@@ -2027,6 +2353,17 @@
           if (e.target.closest('#btn-drawer-add-tag') && state.selectedBookmarkId) {
             const inp = document.getElementById('drawer-add-tag-input');
             addTagToBookmark(state.selectedBookmarkId, inp.value);
+          }
+        });
+
+        drawerContentEl.addEventListener('keydown', (e) => {
+          if (e.target.id === 'drawer-add-tag-input' && e.key === 'Enter' && state.selectedBookmarkId) {
+            e.preventDefault();
+            addTagToBookmark(state.selectedBookmarkId, e.target.value);
+          } else if (e.target.id === 'drawer-edit-title' && e.key === 'Enter' && state.selectedBookmarkId) {
+            e.preventDefault();
+            const sVal = document.getElementById('drawer-edit-summary').value;
+            saveBookmarkMeta(state.selectedBookmarkId, e.target.value, sVal);
           }
         });
 
